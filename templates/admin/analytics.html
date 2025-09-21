@@ -1,0 +1,187 @@
+
+{% extends "admin/base.html" %}
+
+{% block title %}Analisis Penjualan - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Analisis Penjualan</h2>
+    <div class="btn-group">
+        <a href="{{ url_for('export_daily_sales') }}" class="btn btn-success">
+            <i class="fas fa-file-excel me-2"></i>Export Excel
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6>Total Penjualan (7 hari)</h6>
+                        <h3>Rp {{ "{:,.0f}".format(daily_sales|sum(attribute='total')|float if daily_sales else 0).replace(',', '.') }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6>Total Pesanan (7 hari)</h6>
+                        <h3>{{ daily_sales|sum(attribute='orders_count') if daily_sales else 0 }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-shopping-cart fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6>Rata-rata Order</h6>
+                        <h3>Rp {{ "{:,.0f}".format((daily_sales|sum(attribute='total')|float / daily_sales|sum(attribute='orders_count')|float) if daily_sales and daily_sales|sum(attribute='orders_count') > 0 else 0).replace(',', '.') }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calculator fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Penjualan Harian -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Penjualan Harian (7 Hari Terakhir)</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Total Penjualan</th>
+                                <th>Jumlah Pesanan</th>
+                                <th>Rata-rata Order</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in daily_sales %}
+                            <tr>
+                                <td>{{ sale.date.strftime('%d/%m/%Y') }}</td>
+                                <td><strong>Rp {{ "{:,.0f}".format(sale.total|float).replace(',', '.') }}</strong></td>
+                                <td>{{ sale.orders_count }}</td>
+                                <td>Rp {{ "{:,.0f}".format((sale.total|float / sale.orders_count|float) if sale.orders_count > 0 else 0).replace(',', '.') }}</td>
+                            </tr>
+                            {% endfor %}
+                            
+                            {% if not daily_sales %}
+                            <tr>
+                                <td colspan="4" class="text-center">Belum ada data penjualan</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Customers -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Pelanggan Terbaik</h5>
+            </div>
+            <div class="card-body">
+                {% for customer in top_customers %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <strong>{{ customer.name }}</strong>
+                        <small class="d-block text-muted">{{ customer.email }}</small>
+                        <small class="text-muted">{{ customer.orders_count }} pesanan</small>
+                    </div>
+                    <div class="text-end">
+                        <strong class="text-success">Rp {{ "{:,.0f}".format(customer.total_spent|float).replace(',', '.') }}</strong>
+                    </div>
+                </div>
+                <hr>
+                {% endfor %}
+                
+                {% if not top_customers %}
+                <p class="text-center text-muted">Belum ada data pelanggan</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Penjualan per Kategori -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Penjualan per Kategori</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Kategori</th>
+                                <th>Total Penjualan</th>
+                                <th>Jumlah Terjual</th>
+                                <th>Persentase</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set total_sales = category_sales|sum(attribute='total_sales')|float %}
+                            {% for category in category_sales %}
+                            <tr>
+                                <td><strong>{{ category.name }}</strong></td>
+                                <td>Rp {{ "{:,.0f}".format(category.total_sales|float).replace(',', '.') }}</td>
+                                <td>{{ category.total_quantity }}</td>
+                                <td>
+                                    {% if total_sales > 0 %}
+                                    <div class="progress" style="height: 20px;">
+                                        {% set percentage = (category.total_sales|float / total_sales * 100) %}
+                                        <div class="progress-bar bg-orange" role="progressbar" 
+                                             style="width: {{ percentage }}%">
+                                            {{ "%.1f"|format(percentage) }}%
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    0%
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            
+                            {% if not category_sales %}
+                            <tr>
+                                <td colspan="4" class="text-center">Belum ada data penjualan kategori</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

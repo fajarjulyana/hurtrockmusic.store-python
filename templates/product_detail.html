@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - Hurtrock Music Store{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-6">
+        <div class="product-image-container">
+            <img src="{{ product.image_url or '/static/images/placeholder.jpg' }}" 
+                 class="img-fluid rounded shadow-lg" alt="{{ product.name }}"
+                 onerror="this.src='https://via.placeholder.com/500x400/FF6B35/FFFFFF?text={{ product.name[:15] }}'">
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="product-details">
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Beranda</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('products') }}">Produk</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('products', category=product.category_id) }}">{{ product.category.name }}</a></li>
+                    <li class="breadcrumb-item active">{{ product.name }}</li>
+                </ol>
+            </nav>
+            
+            <h1 class="h2 mb-3">{{ product.name }}</h1>
+            
+            {% if product.brand or product.model %}
+            <p class="text-muted mb-3">
+                {% if product.brand %}<strong>Brand:</strong> {{ product.brand }}{% endif %}
+                {% if product.model %} | <strong>Model:</strong> {{ product.model }}{% endif %}
+            </p>
+            {% endif %}
+            
+            <div class="price-section mb-4">
+                <span class="price-tag display-6 fw-bold text-orange">{{ product.formatted_price }}</span>
+            </div>
+            
+            <div class="stock-info mb-4">
+                {% if product.stock_quantity > 0 %}
+                    <span class="badge bg-success">
+                        <i class="fas fa-check me-1"></i>Stok Tersedia ({{ product.stock_quantity }} unit)
+                    </span>
+                {% else %}
+                    <span class="badge bg-danger">
+                        <i class="fas fa-times me-1"></i>Stok Habis
+                    </span>
+                {% endif %}
+            </div>
+            
+            {% if product.description %}
+            <div class="description mb-4">
+                <h5>Deskripsi Produk</h5>
+                <p>{{ product.description }}</p>
+            </div>
+            {% endif %}
+            
+            {% if current_user.is_authenticated and product.stock_quantity > 0 %}
+            <form method="POST" action="{{ url_for('add_to_cart', product_id=product.id) }}" class="mb-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="row align-items-end">
+                    <div class="col-md-4">
+                        <label for="quantity" class="form-label">Jumlah</label>
+                        <div class="quantity-control">
+                            <div class="input-group">
+                                <button type="button" class="btn btn-outline-secondary decrease">-</button>
+                                <input type="number" id="quantity" name="quantity" value="1" 
+                                       min="1" max="{{ product.stock_quantity }}" class="form-control text-center">
+                                <button type="button" class="btn btn-outline-secondary increase">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <button type="submit" class="btn btn-orange btn-lg w-100">
+                            <i class="fas fa-cart-plus me-2"></i>Tambah ke Keranjang
+                        </button>
+                    </div>
+                </div>
+            </form>
+            {% elif not current_user.is_authenticated %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <a href="{{ url_for('login') }}" class="alert-link">Login</a> untuk menambahkan produk ke keranjang
+            </div>
+            {% endif %}
+            
+            <div class="product-features">
+                <h6>Keunggulan Hurtrock Music Store:</h6>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-shield-alt text-orange me-2"></i>Garansi resmi</li>
+                    <li><i class="fas fa-shipping-fast text-orange me-2"></i>Pengiriman cepat & aman</li>
+                    <li><i class="fas fa-tools text-orange me-2"></i>Service center terpercaya</li>
+                    <li><i class="fas fa-headset text-orange me-2"></i>Customer support 24/7</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Related Products -->
+<div class="row mt-5">
+    <div class="col-12">
+        <h4 class="mb-4">Produk Serupa</h4>
+        <div class="row">
+            <!-- This would typically query for related products -->
+            <div class="col-md-3 mb-4">
+                <div class="card product-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-music fa-3x text-orange mb-3"></i>
+                        <h6>Lihat Produk Lainnya</h6>
+                        <a href="{{ url_for('products', category=product.category_id) }}" class="btn btn-outline-orange">
+                            Kategori {{ product.category.name }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.decrease').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const input = this.nextElementSibling;
+        if (parseInt(input.value) > 1) {
+            input.value = parseInt(input.value) - 1;
+        }
+    });
+});
+
+document.querySelectorAll('.increase').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const input = this.previousElementSibling;
+        const max = parseInt(input.getAttribute('max'));
+        if (parseInt(input.value) < max) {
+            input.value = parseInt(input.value) + 1;
+        }
+    });
+});
+</script>
+{% endblock %}

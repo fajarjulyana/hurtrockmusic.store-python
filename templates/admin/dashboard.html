@@ -1,0 +1,332 @@
+
+{% extends "admin/base.html" %}
+
+{% block title %}Dashboard Admin - Hurtrock Music Store{% endblock %}
+
+{% block content %}
+<!-- Welcome Section -->
+<div class="mb-4">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <h1 class="display-5 text-orange mb-2">Dashboard Admin</h1>
+            <p class="lead mb-0">Selamat datang, {{ current_user.name }}! Kelola toko musik Anda dengan mudah.</p>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+            <div class="badge bg-orange fs-6 px-3 py-2">
+                <i class="fas fa-clock me-2"></i>{{ current_date.strftime('%d %B %Y') }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-5">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card admin-stats-card border-0 h-100">
+            <div class="card-body text-center p-4">
+                <div class="admin-stats-icon mb-3">
+                    <i class="fas fa-guitar admin-stats-icon"></i>
+                </div>
+                <div class="admin-stats-number">{{ total_products }}</div>
+                <div class="admin-stats-label">Total Produk</div>
+                <div class="mt-3">
+                    <a href="{{ url_for('admin_products') }}" class="btn btn-outline-orange btn-sm">
+                        <i class="fas fa-eye me-1"></i>Lihat Detail
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card admin-stats-card border-0 h-100">
+            <div class="card-body text-center p-4">
+                <div class="admin-stats-icon mb-3">
+                    <i class="fas fa-receipt admin-stats-icon"></i>
+                </div>
+                <div class="admin-stats-number">{{ total_orders }}</div>
+                <div class="admin-stats-label">Total Pesanan</div>
+                <div class="mt-3">
+                    <a href="{{ url_for('admin_orders') }}" class="btn btn-outline-orange btn-sm">
+                        <i class="fas fa-eye me-1"></i>Lihat Detail
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card admin-stats-card border-0 h-100">
+            <div class="card-body text-center p-4">
+                <div class="admin-stats-icon mb-3">
+                    <i class="fas fa-user-friends admin-stats-icon"></i>
+                </div>
+                <div class="admin-stats-number">{{ total_users }}</div>
+                <div class="admin-stats-label">Total Pengguna</div>
+                <div class="mt-3">
+                    {% if current_user.is_admin %}
+                    <a href="{{ url_for('admin_users') }}" class="btn btn-outline-orange btn-sm">
+                        <i class="fas fa-eye me-1"></i>Lihat Detail
+                    </a>
+                    {% else %}
+                    <span class="btn btn-outline-secondary btn-sm disabled">
+                        <i class="fas fa-lock me-1"></i>Admin Only
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card admin-stats-card border-0 h-100">
+            <div class="card-body text-center p-4">
+                <div class="admin-stats-icon mb-3">
+                    <i class="fas fa-comment-dots admin-stats-icon"></i>
+                </div>
+                <div class="admin-stats-number">{{ pending_chats }}</div>
+                <div class="admin-stats-label">Chat Pending</div>
+                <div class="mt-3">
+                    <a href="{{ url_for('admin_chats') }}" class="btn btn-outline-orange btn-sm">
+                        <i class="fas fa-eye me-1"></i>Lihat Detail
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Row -->
+<div class="row">
+    <!-- Quick Actions -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 h-100 shadow-sm">
+            <div class="card-header bg-orange text-white border-0">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <a href="{{ url_for('admin_add_product') }}" class="btn btn-orange w-100 py-3">
+                            <i class="fas fa-plus-circle mb-2 d-block" style="font-size: 1.5rem;"></i>
+                            <strong>Tambah Produk</strong>
+                            <small class="d-block text-white-50">Produk musik baru</small>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{{ url_for('admin_categories') }}" class="btn btn-outline-orange w-100 py-3">
+                            <i class="fas fa-folder-open mb-2 d-block" style="font-size: 1.5rem;"></i>
+                            <strong>Kelola Kategori</strong>
+                            <small class="d-block">Atur kategori produk</small>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{{ url_for('admin_chats') }}" class="btn btn-outline-orange w-100 py-3">
+                            <i class="fas fa-headset mb-2 d-block" style="font-size: 1.5rem;"></i>
+                            <strong>Chat Pelanggan</strong>
+                            <small class="d-block">Respon pertanyaan</small>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        {% if current_user.is_admin %}
+                        <a href="{{ url_for('admin_users') }}" class="btn btn-outline-orange w-100 py-3">
+                            <i class="fas fa-users-cog mb-2 d-block" style="font-size: 1.5rem;"></i>
+                            <strong>Kelola User</strong>
+                            <small class="d-block">Manajemen pengguna</small>
+                        </a>
+                        {% else %}
+                        <div class="btn btn-outline-secondary w-100 py-3 disabled">
+                            <i class="fas fa-lock mb-2 d-block" style="font-size: 1.5rem;"></i>
+                            <strong>Kelola User</strong>
+                            <small class="d-block">Admin Only</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 h-100 shadow-sm">
+            <div class="card-header bg-gradient" style="background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%); color: white;">
+                <h5 class="mb-0">
+                    <i class="fas fa-shopping-cart me-2"></i>Pesanan Terbaru
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="px-4 py-3">Order ID</th>
+                                    <th class="py-3">Pelanggan</th>
+                                    <th class="py-3">Total</th>
+                                    <th class="py-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td class="px-4 py-3">
+                                        <strong class="text-orange">#{{ order.id }}</strong>
+                                    </td>
+                                    <td class="py-3">
+                                        <div>
+                                            <strong>{{ order.user.name }}</strong>
+                                            <small class="d-block text-muted">{{ order.user.email[:20] }}...</small>
+                                        </div>
+                                    </td>
+                                    <td class="py-3">
+                                        <strong class="text-success">{{ order.formatted_total }}</strong>
+                                    </td>
+                                    <td class="py-3">
+                                        {% if order.status == 'paid' %}
+                                            <span class="badge bg-success px-3 py-1">
+                                                <i class="fas fa-check me-1"></i>Dibayar
+                                            </span>
+                                        {% elif order.status == 'shipped' %}
+                                            <span class="badge bg-info px-3 py-1">
+                                                <i class="fas fa-truck me-1"></i>Dikirim
+                                            </span>
+                                        {% elif order.status == 'delivered' %}
+                                            <span class="badge bg-primary px-3 py-1">
+                                                <i class="fas fa-box-open me-1"></i>Sampai
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-warning px-3 py-1">
+                                                <i class="fas fa-clock me-1"></i>Pending
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer bg-light text-center border-0">
+                        <a href="{{ url_for('admin_orders') }}" class="btn btn-outline-orange">
+                            <i class="fas fa-arrow-right me-2"></i>Lihat Semua Pesanan
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">Belum ada pesanan</h6>
+                        <p class="text-muted small mb-4">Pesanan akan muncul di sini ketika pelanggan melakukan pembelian</p>
+                        <a href="{{ url_for('admin_products') }}" class="btn btn-outline-orange">
+                            <i class="fas fa-plus me-2"></i>Tambah Produk
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sales Analytics Cards -->
+<div class="row mt-4">
+    <div class="col-md-6 mb-3">
+        <div class="card border-0" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);">
+            <div class="card-body py-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-success mb-1">Penjualan Hari Ini</h6>
+                        <h4 class="text-success mb-0">Rp {{ "{:,.0f}".format(today_sales|float).replace(',', '.') }}</h4>
+                    </div>
+                    <i class="fas fa-calendar-day fa-2x text-success"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card border-0" style="background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);">
+            <div class="card-body py-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-info mb-1">Penjualan Bulan Ini</h6>
+                        <h4 class="text-info mb-0">Rp {{ "{:,.0f}".format(monthly_sales|float).replace(',', '.') }}</h4>
+                    </div>
+                    <i class="fas fa-calendar-alt fa-2x text-info"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Best Selling Products -->
+{% if best_selling_products %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-orange text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-fire me-2"></i>Produk Terlaris
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for product in best_selling_products %}
+                    <div class="col-md-2 text-center mb-3">
+                        <div class="p-3 border rounded">
+                            <i class="fas fa-guitar fa-2x text-orange mb-2"></i>
+                            <h6 class="mb-1">{{ product.name[:20] }}{% if product.name|length > 20 %}...{% endif %}</h6>
+                            <span class="badge bg-success">{{ product.total_sold }} terjual</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('admin_analytics') }}" class="btn btn-outline-orange">
+                        <i class="fas fa-chart-bar me-2"></i>Lihat Analisis Lengkap
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Add some interactivity to the dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover effects to stats cards
+    const statsCards = document.querySelectorAll('.admin-stats-card');
+    statsCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+    
+    // Auto-refresh pending chats count every 30 seconds
+    setInterval(function() {
+        fetch('/api/chat/pending_count')
+            .then(response => response.json())
+            .then(data => {
+                if (data.count !== undefined) {
+                    const chatCountElement = document.querySelector('.admin-stats-number');
+                    if (chatCountElement && data.count !== parseInt(chatCountElement.textContent)) {
+                        chatCountElement.textContent = data.count;
+                        // Add a subtle animation
+                        chatCountElement.style.transform = 'scale(1.1)';
+                        setTimeout(() => {
+                            chatCountElement.style.transform = 'scale(1)';
+                        }, 200);
+                    }
+                }
+            })
+            .catch(error => console.log('Chat count refresh failed:', error));
+    }, 30000);
+});
+</script>
+{% endblock %}
