@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="id"></html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin - Hurtrock Music Store{% endblock %}</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome - Multiple Sources for Better Reliability -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+
+    <style>
+    /* Admin Layout */
+    .admin-sidebar {
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 280px;
+        background: linear-gradient(135deg, var(--white-primary) 0%, var(--gray-light) 100%);
+        padding-top: 80px;
+        z-index: 999;
+        box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+        border-right: 1px solid var(--glass-border);
+    }
+
+    [data-theme="dark"] .admin-sidebar {
+        background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .admin-sidebar .nav-link {
+        color: var(--gray-medium);
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin: 0.2rem 1rem;
+        transition: all 0.3s ease;
+        font-family: 'Inter', sans-serif;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+    }
+
+    [data-theme="dark"] .admin-sidebar .nav-link {
+        color: #adb5bd;
+    }
+
+    .admin-sidebar .nav-link:hover,
+    .admin-sidebar .nav-link.active {
+        color: #fff !important;
+        background: var(--orange-primary) !important;
+        transform: translateX(5px);
+        box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+    }
+
+    .admin-sidebar .nav-link i {
+        width: 20px;
+        text-align: center;
+        margin-right: 0.75rem;
+    }
+
+    .admin-main-content {
+        margin-left: 280px;
+        padding: 100px 30px 30px 30px;
+        min-height: 100vh;
+        background: var(--gray-light);
+    }
+
+    [data-theme="dark"] .admin-main-content {
+        background: #1A1A1A;
+        color: var(--white-primary);
+    }
+
+    .admin-navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1001;
+        background: var(--glass-bg) !important;
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border-bottom: 1px solid var(--glass-border);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        padding: 1rem 0;
+    }
+
+    [data-theme="dark"] .admin-navbar {
+        background: rgba(26, 26, 26, 0.9) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .admin-brand {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.5rem;
+        color: var(--orange-primary) !important;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        text-decoration: none;
+        margin-left: 1.5rem;
+    }
+
+    .admin-brand:hover {
+        color: var(--orange-secondary) !important;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .admin-sidebar {
+            width: 100%;
+            height: auto;
+            position: relative;
+            padding-top: 20px;
+        }
+
+        .admin-main-content {
+            margin-left: 0;
+            padding: 120px 15px 30px 15px;
+        }
+
+        .admin-navbar .container-fluid {
+            padding: 0 15px;
+        }
+    }
+
+    /* Theme Toggle */
+    .theme-toggle {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 25px;
+        padding: 0.5rem;
+        color: var(--black-primary);
+        transition: all 0.3s ease;
+    }
+
+    .theme-toggle:hover {
+        background: var(--orange-primary);
+        border-color: var(--orange-primary);
+        color: white;
+    }
+
+    /* Enhanced Cards for Admin */
+    .admin-content .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+    }
+
+    .admin-content .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Sidebar brand */
+    .sidebar-brand {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--glass-border);
+        margin-bottom: 1rem;
+    }
+
+    [data-theme="dark"] .sidebar-brand {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar-brand h5 {
+        color: var(--orange-primary);
+        font-family: 'Playfair Display', serif;
+        margin: 0;
+        font-size: 1.1rem;
+    }
+
+    .sidebar-brand small {
+        color: var(--gray-medium);
+        font-family: 'Inter', sans-serif;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    [data-theme="dark"] .sidebar-brand small {
+        color: #adb5bd;
+    }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- AdminNavbar -->
+    <nav class="navbar navbar-expand-lg admin-navbar">
+        <div class="container-fluid">
+            <a class="admin-brand" href="{{ url_for('admin_dashboard') }}">
+                <svg class="admin-svg-icon me-2" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 13C6.6 5 9.4 3 12 3C14.6 3 17.4 5 21 13" stroke="currentColor" stroke-width="2" fill="none"/>
+                    <path d="M9 17H15" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 3V14" stroke="currentColor" stroke-width="2"/>
+                    <circle cx="12" cy="17" r="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                </svg>Admin Panel
+            </a>
+
+            <div class="navbar-nav ms-auto d-flex flex-row align-items-center">
+                <!-- Theme Toggle -->
+                <button class="theme-toggle btn btn-orange me-3" onclick="toggleTheme()" title="Toggle Dark Mode" id="themeToggleBtn">
+                    <svg class="admin-svg-icon theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="2" fill="currentColor"/>
+                    </svg>
+                    <span class="ms-2 d-none d-md-inline theme-text">Dark</span>
+                </button>
+
+                <!-- Admin Dropdown -->
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" style="color: var(--black-primary);">
+                        <div class="rounded-circle bg-orange d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
+                            <svg class="admin-svg-icon text-white" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="8" r="5" stroke="currentColor" stroke-width="2" fill="none"/>
+                                <path d="M3 21V20C3 17.8 4.8 16 7 16H17C19.2 16 21 17.8 21 20V21" stroke="currentColor" stroke-width="2" fill="none"/>
+                            </svg>
+                        </div>
+                        <span class="d-none d-md-inline">{{ current_user.name }}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: 10px;">
+                        <li>
+                            <h6 class="dropdown-header">
+                                <svg class="admin-svg-icon me-2 text-orange" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" fill="none"/>
+                                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/>
+                                </svg>{{ current_user.role.title() }}
+                            </h6>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('index') }}">
+                            <svg class="admin-svg-icon me-2 text-info" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 12L12 3L21 12" stroke="currentColor" stroke-width="2" fill="none"/>
+                                <path d="M5 10V20C5 20.5 5.5 21 6 21H18C18.5 21 19 20.5 19 20V10" stroke="currentColor" stroke-width="2" fill="none"/>
+                                <path d="M9 21V15C9 14.5 9.5 14 10 14H14C14.5 14 15 14.5 15 15V21" stroke="currentColor" stroke-width="2" fill="none"/>
+                            </svg>Website Utama
+                        </a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('profile') }}">
+                            <svg class="admin-svg-icon me-2 text-warning" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 20H21" stroke="currentColor" stroke-width="2" fill="none"/>
+                                <path d="M16.5 3.5C17.3 2.7 18.7 2.7 19.5 3.5C20.3 4.3 20.3 5.7 19.5 6.5L9 17L5 18L6 14L16.5 3.5Z" stroke="currentColor" stroke-width="2" fill="none"/>
+                            </svg>Edit Profile
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
+                            <svg class="admin-svg-icon me-2" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 17L21 12L16 7" stroke="currentColor" stroke-width="2" fill="none"/>
+                                <path d="M21 12H9" stroke="currentColor" stroke-width="2" fill="none"/>
+                                <path d="M9 21H5C4.5 21 4 20.5 4 20V4C4 3.5 4.5 3 5 3H9" stroke="currentColor" stroke-width="2" fill="none"/>
+                            </svg>Logout
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <nav class="admin-sidebar">
+        <div class="sidebar-brand text-center">
+            <h5>
+                <svg class="admin-svg-icon me-2" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 11H15L13 13L15 15H9L11 13L9 11Z" stroke="currentColor" stroke-width="2" fill="currentColor"/>
+                    <circle cx="12" cy="8" r="3" stroke="currentColor" stroke-width="2" fill="none"/>
+                    <path d="M12 1L14 6L19 6L15 10L17 15L12 12L7 15L9 10L5 6L10 6L12 1Z" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                </svg>Hurtrock
+            </h5>
+            <small>Music Store Admin</small>
+        </div>
+
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' }}" href="{{ url_for('admin_dashboard') }}">
+                    <svg class="admin-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+                    </svg>Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'products' in request.endpoint }}" href="{{ url_for('admin_products') }}">
+                    <svg class="admin-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 7H4C3.5 7 3 7.5 3 8V19C3 19.5 3.5 20 4 20H20C20.5 20 21 19.5 21 19V8C21 7.5 20.5 7 20 7Z" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <path d="M16 21V5C16 4.5 15.5 4 15 4H9C8.5 4 8 4.5 8 5V21" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <path d="M12 11V17" stroke="currentColor" stroke-width="2"/>
+                        <path d="M9 14H15" stroke="currentColor" stroke-width="2"/>
+                    </svg>Kelola Produk
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'categories' in request.endpoint }}" href="{{ url_for('admin_categories') }}">
+                    <svg class="admin-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="3" width="18" height="4" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <rect x="3" y="10" width="18" height="4" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <rect x="3" y="17" width="18" height="4" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <path d="M9 5L10 3M9 12L10 10M9 19L10 17" stroke="currentColor" stroke-width="2"/>
+                    </svg>Kelola Kategori
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'orders' in request.endpoint }}" href="{{ url_for('admin_orders') }}">
+                    <svg class="admin-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 3H5L5.4 5M7 13H17L21 5H5.4M7 13L5.4 5M7 13L4.7 15.3C4.3 15.7 4.6 16.5 5.1 16.5H17M17 13V17C17 18.1 16.1 19 15 19H9C7.9 19 7 18.1 7 17V13M15 22C16.1 22 17 21.1 17 20S16.1 18 15 18 13 18.9 13 20 13.9 22 15 22ZM9 22C10.1 22 11 21.1 11 20S10.1 18 9 18 7 18.9 7 20 7.9 22 9 22Z" stroke="currentColor" stroke-width="2" fill="none"/>
+                    </svg>Kelola Pesanan
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'chats' in request.endpoint }}" href="{{ url_for('admin_chats') }}">
+                    <svg class="admin-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C17.5 2 22 6.5 22 12C22 17.5 17.5 22 12 22C10.9 22 9.8 21.8 8.8 21.5L3 22L4.5 16.2C4.2 15.2 4 14.1 4 13C4 7.5 8.5 3 14 3" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <circle cx="8" cy="12" r="1" fill="currentColor"/>
+                        <circle cx="12" cy="12" r="1" fill="currentColor"/>
+                        <circle cx="16" cy="12" r="1" fill="currentColor"/>
+                    </svg>Chat Pelanggan
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'analytics' in request.endpoint }}" href="{{ url_for('admin_analytics') }}">
+                    <svg class="admin-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 3V21H21" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <path d="M8 14L12 10L16 12L20 8" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <circle cx="8" cy="14" r="1" fill="currentColor"/>
+                        <circle cx="12" cy="10" r="1" fill="currentColor"/>
+                        <circle cx="16" cy="12" r="1" fill="currentColor"/>
+                        <circle cx="20" cy="8" r="1" fill="currentColor"/>
+                    </svg>Analisis Penjualan
+                </a>
+            </li>
+            {% if current_user.is_admin %}
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'users' in request.endpoint }}" href="{{ url_for('admin_users') }}">
+                    <svg class="admin-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <path d="M2 21V19C2 16.8 3.8 15 6 15H12C14.2 15 16 16.8 16 19V21" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <path d="M16 3.1C17.7 3.8 19 5.6 19 7.7S17.7 11.6 16 12.3" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <path d="M22 21V19C22 17.1 20.9 15.4 19.2 14.8" stroke="currentColor" stroke-width="2" fill="none"/>
+                    </svg>Kelola User
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+
+        <!-- Sidebar Footer -->
+        <div class="mt-auto p-3 text-center" style="border-top: 1px solid var(--glass-border);">
+            <small style="color: var(--gray-medium);">
+                <i class="fas fa-copyright me-1"></i>2024 Hurtrock
+            </small>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="admin-main-content admin-content">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show border-0 shadow-sm" role="alert" style="border-radius: 10px;">
+                        <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' if category == 'success' else 'info-circle' }} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <style>
+    /* Fallback CSS for Font Awesome Icons */
+    .icon-fallback {
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        text-align: center;
+        line-height: 1;
+    }
+    
+    /* CSS Icons as Fallback */
+    .fa-guitar::before, .fas.fa-guitar::before { content: "🎸"; }
+    .fa-receipt::before, .fas.fa-receipt::before { content: "📋"; }
+    .fa-user-friends::before, .fas.fa-user-friends::before { content: "👥"; }
+    .fa-comment-dots::before, .fas.fa-comment-dots::before { content: "💬"; }
+    .fa-chart-pie::before, .fas.fa-chart-pie::before { content: "📊"; }
+    .fa-box-open::before, .fas.fa-box-open::before { content: "📦"; }
+    .fa-tags::before, .fas.fa-tags::before { content: "🏷️"; }
+    .fa-shopping-cart::before, .fas.fa-shopping-cart::before { content: "🛒"; }
+    .fa-fire::before, .fas.fa-fire::before { content: "🔥"; }
+    .fa-calendar-day::before, .fas.fa-calendar-day::before { content: "📅"; }
+    .fa-calendar-alt::before, .fas.fa-calendar-alt::before { content: "📅"; }
+    .fa-comments::before, .fas.fa-comments::before { content: "💬"; }
+    .fa-chart-bar::before, .fas.fa-chart-bar::before { content: "📊"; }
+    .fa-users::before, .fas.fa-users::before { content: "👥"; }
+    .fa-cogs::before, .fas.fa-cogs::before { content: "⚙️"; }
+    .fa-user::before, .fas.fa-user::before { content: "👤"; }
+    .fa-user-shield::before, .fas.fa-user-shield::before { content: "🛡️"; }
+    .fa-home::before, .fas.fa-home::before { content: "🏠"; }
+    .fa-user-edit::before, .fas.fa-user-edit::before { content: "✏️"; }
+    .fa-sign-out-alt::before, .fas.fa-sign-out-alt::before { content: "🚪"; }
+    .fa-plus::before, .fas.fa-plus::before { content: "+"; }
+    .fa-edit::before, .fas.fa-edit::before { content: "✏️"; }
+    .fa-trash::before, .fas.fa-trash::before { content: "🗑️"; }
+    .fa-eye::before, .fas.fa-eye::before { content: "👁️"; }
+    .fa-print::before, .fas.fa-print::before { content: "🖨️"; }
+    .fa-map-marker-alt::before, .fas.fa-map-marker-alt::before { content: "📍"; }
+    .fa-envelope::before, .fas.fa-envelope::before { content: "📧"; }
+    .fa-headset::before, .fas.fa-headset::before { content: "🎧"; }
+    .fa-bolt::before, .fas.fa-bolt::before { content: "⚡"; }
+    .fa-plus-circle::before, .fas.fa-plus-circle::before { content: "➕"; }
+    .fa-folder-open::before, .fas.fa-folder-open::before { content: "📁"; }
+    .fa-users-cog::before, .fas.fa-users-cog::before { content: "👥⚙️"; }
+    .fa-lock::before, .fas.fa-lock::before { content: "🔒"; }
+    .fa-arrow-right::before, .fas.fa-arrow-right::before { content: "→"; }
+    .fa-inbox::before, .fas.fa-inbox::before { content: "📥"; }
+    .fa-clock::before, .fas.fa-clock::before { content: "🕐"; }
+    .fa-check::before, .fas.fa-check::before { content: "✓"; }
+    .fa-truck::before, .fas.fa-truck::before { content: "🚚"; }
+    .fa-paper-plane::before, .fas.fa-paper-plane::before { content: "✈️"; }
+    .fa-arrow-left::before, .fas.fa-arrow-left::before { content: "←"; }
+    .fa-tag::before, .fas.fa-tag::before { content: "🏷️"; }
+    .fa-moon::before, .fas.fa-moon::before { content: "🌙"; }
+    .fa-times::before, .fas.fa-times::before { content: "✕"; }
+    .fa-chart-line::before, .fas.fa-chart-line::before { content: "📈"; }
+    .fa-calculator::before, .fas.fa-calculator::before { content: "🧮"; }
+    .fa-file-excel::before, .fas.fa-file-excel::before { content: "📊"; }
+    .fa-exclamation-triangle::before, .fas.fa-exclamation-triangle::before { content: "⚠️"; }
+    .fa-check-circle::before, .fas.fa-check-circle::before { content: "✅"; }
+    .fa-info-circle::before, .fas.fa-info-circle::before { content: "ℹ️"; }
+    </style>
+
+    <!-- Theme Toggle Function -->
+    <script>
+        // Global theme toggle function
+        function toggleTheme() {
+            const html = document.documentElement;
+            const body = document.body;
+            const currentTheme = html.getAttribute('data-theme') || body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            // Set theme on both html and body for maximum compatibility
+            html.setAttribute('data-theme', newTheme);
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+            
+            // Force refresh of CSS custom properties
+            document.body.style.display = 'none';
+            document.body.offsetHeight; // Trigger reflow
+            document.body.style.display = '';
+            
+            console.log('Theme changed to:', newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const themeIcon = document.querySelector('.theme-icon');
+            const themeText = document.querySelector('.theme-text');
+            
+            if (themeIcon) {
+                if (theme === 'dark') {
+                    // Sun icon for dark mode (to switch to light)
+                    themeIcon.innerHTML = '<circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2" fill="currentColor"/><path d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22" stroke="currentColor" stroke-width="2"/>';
+                    if (themeText) themeText.textContent = 'Light';
+                } else {
+                    // Moon icon for light mode (to switch to dark)
+                    themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="2" fill="currentColor"/>';
+                    if (themeText) themeText.textContent = 'Dark';
+                }
+            }
+        }
+
+        // Load saved theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            const html = document.documentElement;
+            const body = document.body;
+            
+            // Set theme on both elements
+            html.setAttribute('data-theme', savedTheme);
+            body.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+            
+            console.log('Theme loaded:', savedTheme);
+        });
+
+        // Also run immediately to ensure theme is set before DOM is fully loaded
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            if (document.body) {
+                document.body.setAttribute('data-theme', savedTheme);
+            }
+        })();
+    </script>
+
+    <!-- Font Awesome Icon Fix Script -->
+    <script>
+        // Enhanced Font Awesome Loading and Fallback System
+        document.addEventListener('DOMContentLoaded', function() {
+            // Test if Font Awesome is loaded
+            function isFontAwesomeLoaded() {
+                const testIcon = document.createElement('i');
+                testIcon.className = 'fas fa-home';
+                testIcon.style.position = 'absolute';
+                testIcon.style.left = '-9999px';
+                testIcon.style.visibility = 'hidden';
+                document.body.appendChild(testIcon);
+                
+                const computedStyle = window.getComputedStyle(testIcon, ':before');
+                const isLoaded = computedStyle.fontFamily && computedStyle.fontFamily.includes('Font Awesome');
+                
+                document.body.removeChild(testIcon);
+                return isLoaded;
+            }
+
+            // Load Font Awesome as fallback
+            function loadFontAwesome() {
+                const links = [
+                    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+                    'https://use.fontawesome.com/releases/v6.4.0/css/all.css',
+                    'https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css'
+                ];
+                
+                links.forEach((href, index) => {
+                    setTimeout(() => {
+                        const link = document.createElement('link');
+                        link.rel = 'stylesheet';
+                        link.href = href;
+                        link.crossOrigin = 'anonymous';
+                        document.head.appendChild(link);
+                    }, index * 500);
+                });
+            }
+
+            // Check and load Font Awesome
+            setTimeout(() => {
+                if (!isFontAwesomeLoaded()) {
+                    console.log('Font Awesome not detected, loading fallback...');
+                    loadFontAwesome();
+                }
+            }, 500);
+
+            // Final fallback - ensure all icons show something
+            setTimeout(() => {
+                const allIcons = document.querySelectorAll('i[class*="fa"]');
+                allIcons.forEach(icon => {
+                    if (!icon.innerHTML && (icon.offsetWidth <= 10 || icon.offsetHeight <= 10)) {
+                        const classes = icon.className;
+                        
+                        // Add emoji fallbacks based on class
+                        if (classes.includes('fa-guitar')) icon.innerHTML = '🎸';
+                        else if (classes.includes('fa-receipt')) icon.innerHTML = '📋';
+                        else if (classes.includes('fa-user-friends')) icon.innerHTML = '👥';
+                        else if (classes.includes('fa-comment-dots') || classes.includes('fa-comments')) icon.innerHTML = '💬';
+                        else if (classes.includes('fa-chart-pie') || classes.includes('fa-chart-bar')) icon.innerHTML = '📊';
+                        else if (classes.includes('fa-box-open')) icon.innerHTML = '📦';
+                        else if (classes.includes('fa-tags') || classes.includes('fa-tag')) icon.innerHTML = '🏷️';
+                        else if (classes.includes('fa-shopping-cart')) icon.innerHTML = '🛒';
+                        else if (classes.includes('fa-fire')) icon.innerHTML = '🔥';
+                        else if (classes.includes('fa-calendar')) icon.innerHTML = '📅';
+                        else if (classes.includes('fa-users')) icon.innerHTML = '👥';
+                        else if (classes.includes('fa-cogs')) icon.innerHTML = '⚙️';
+                        else if (classes.includes('fa-user')) icon.innerHTML = '👤';
+                        else if (classes.includes('fa-home')) icon.innerHTML = '🏠';
+                        else if (classes.includes('fa-edit')) icon.innerHTML = '✏️';
+                        else if (classes.includes('fa-trash')) icon.innerHTML = '🗑️';
+                        else if (classes.includes('fa-eye')) icon.innerHTML = '👁️';
+                        else if (classes.includes('fa-plus')) icon.innerHTML = '+';
+                        else if (classes.includes('fa-moon')) icon.innerHTML = '🌙';
+                        else if (classes.includes('fa-paper-plane')) icon.innerHTML = '✈️';
+                        else if (classes.includes('fa-envelope')) icon.innerHTML = '📧';
+                        else if (classes.includes('fa-print')) icon.innerHTML = '🖨️';
+                        else if (classes.includes('fa-map-marker')) icon.innerHTML = '📍';
+                        else if (classes.includes('fa-bolt')) icon.innerHTML = '⚡';
+                        else if (classes.includes('fa-folder')) icon.innerHTML = '📁';
+                        else if (classes.includes('fa-lock')) icon.innerHTML = '🔒';
+                        else if (classes.includes('fa-check')) icon.innerHTML = '✓';
+                        else if (classes.includes('fa-times')) icon.innerHTML = '✕';
+                        else if (classes.includes('fa-arrow-right')) icon.innerHTML = '→';
+                        else if (classes.includes('fa-arrow-left')) icon.innerHTML = '←';
+                        else if (classes.includes('fa-clock')) icon.innerHTML = '🕐';
+                        else if (classes.includes('fa-truck')) icon.innerHTML = '🚚';
+                        else if (classes.includes('fa-headset')) icon.innerHTML = '🎧';
+                        else if (classes.includes('fa-chart-line')) icon.innerHTML = '📈';
+                        else if (classes.includes('fa-calculator')) icon.innerHTML = '🧮';
+                        else if (classes.includes('fa-file-excel')) icon.innerHTML = '📊';
+                        else icon.innerHTML = '●';
+                        
+                        icon.style.fontFamily = 'inherit';
+                        icon.style.fontSize = '1em';
+                    }
+                });
+            }, 2000);
+        });
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
