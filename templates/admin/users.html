@@ -1,0 +1,105 @@
+
+{% extends "admin/base.html" %}
+
+{% block title %}Kelola User - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Kelola User</h2>
+    <div class="badge bg-info">{{ users|length }} Total User</div>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nama</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Terdaftar</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'danger' if user.is_admin else ('warning' if user.is_staff else 'primary') }}">
+                                {% if user.is_admin %}Admin{% elif user.is_staff %}Staff{% else %}Buyer{% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if user.active else 'secondary' }}">
+                                {{ 'Aktif' if user.active else 'Nonaktif' }}
+                            </span>
+                        </td>
+                        <td>{{ user.created_at.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            {% if user.id != current_user.id %}
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    Ubah Role
+                                </button>
+                                <ul class="dropdown-menu">
+                                    {% for role in ['admin', 'staff', 'buyer'] %}
+                                    {% if user.role != role %}
+                                    <li>
+                                        <form method="POST" action="{{ url_for('admin_change_user_role', user_id=user.id) }}" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <input type="hidden" name="role" value="{{ role }}">
+                                            <button type="submit" class="dropdown-item" 
+                                                    onclick="return confirm('Yakin ingin mengubah role {{ user.name }} menjadi {{ role }}?')">
+                                                {{ role.title() }}
+                                            </button>
+                                        </form>
+                                    </li>
+                                    {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% else %}
+                            <small class="text-muted">Akun Sendiri</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <h5>{{ users | selectattr('role', 'equalto', 'admin') | list | length }}</h5>
+                <p class="mb-0">Admin</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5>{{ users | selectattr('role', 'equalto', 'staff') | list | length }}</h5>
+                <p class="mb-0">Staff</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5>{{ users | selectattr('role', 'equalto', 'buyer') | list | length }}</h5>
+                <p class="mb-0">Buyer</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
