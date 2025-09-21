@@ -1,0 +1,74 @@
+
+{% extends "admin/base.html" %}
+
+{% block title %}Kelola Produk - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Kelola Produk</h2>
+    <a href="{{ url_for('admin_add_product') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Tambah Produk
+    </a>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nama</th>
+                        <th>Kategori</th>
+                        <th>Harga</th>
+                        <th>Stok</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td>{{ product.id }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if product.image_url %}
+                                <img src="{{ product.image_url }}" alt="{{ product.name }}" 
+                                     style="width: 40px; height: 40px; object-fit: cover; border-radius: 5px; margin-right: 10px;">
+                                {% endif %}
+                                <div>
+                                    <strong>{{ product.name }}</strong><br>
+                                    <small class="text-muted">{{ product.brand }} {{ product.model }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ product.category.name if product.category else '-' }}</td>
+                        <td>{{ product.formatted_price }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if product.stock_quantity > 0 else 'danger' }}">
+                                {{ product.stock_quantity }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if product.is_active else 'secondary' }}">
+                                {{ 'Aktif' if product.is_active else 'Nonaktif' }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
