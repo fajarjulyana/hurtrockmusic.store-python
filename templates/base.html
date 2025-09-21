@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Hurtrock Music Store{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google Fonts - Elegant Modern Theme -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body data-theme="dark">
+    <!-- Glass Navbar -->
+    <nav class="navbar navbar-expand-lg fixed-top glass-navbar">
+        <div class="container">
+            <a class="navbar-brand rock-logo text-orange" href="{{ url_for('index') }}">
+                <i class="fas fa-music me-2"></i>
+                <div class="brand-container">
+                    <div class="brand-name">Hurtrock Music Store</div>
+                    <div class="brand-slogan">Merchandise and Music Instruments Store</div>
+                </div>
+            </a>
+            
+            <!-- Search Bar -->
+            <div class="search-container mx-auto">
+                <input type="text" id="searchInput" class="form-control search-input" placeholder="Cari produk musik...">
+                <div id="searchResults" class="search-results"></div>
+            </div>
+            
+            <!-- Navbar Toggle -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <!-- Navbar Items -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">Beranda</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('products') }}">Produk</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('store_info') }}">Info Toko</a>
+                    </li>
+                    
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link position-relative" href="{{ url_for('cart') }}">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span id="cartCount" class="badge bg-orange position-absolute top-0 start-100 translate-middle">0</span>
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-1"></i>{{ current_user.name }}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('profile') }}">
+                                    <i class="fas fa-user-circle me-2"></i>Profile Saya
+                                    {% if current_user.is_buyer and (not current_user.address or not current_user.phone) %}
+                                        <span class="badge bg-warning ms-2">!</span>
+                                    {% endif %}
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% if current_user.is_admin %}
+                                    <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}">Dashboard Admin</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                {% elif current_user.is_staff %}
+                                    <li><a class="dropdown-item" href="{{ url_for('admin_chats') }}">Panel Staff</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+                                {% if current_user.is_buyer %}
+                                    <li><a class="dropdown-item" href="{{ url_for('orders') }}">Pesanan Saya</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-orange text-white px-3 ms-2" href="{{ url_for('register') }}">Daftar</a>
+                        </li>
+                    {% endif %}
+                    
+                    <!-- Theme Toggle -->
+                    <li class="nav-item">
+                        <button id="themeToggle" class="btn btn-outline-secondary btn-sm ms-2">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-5 pt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="container mt-5 pt-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Floating Chat Widget (only for buyers) -->
+    {% if current_user.is_authenticated and current_user.is_buyer %}
+    <div class="floating-chat-widget">
+        <button id="chatToggle" class="btn btn-orange rounded-circle shadow-lg position-relative">
+            <i class="fas fa-comments fa-lg"></i>
+            <span id="unreadBadge" class="badge bg-danger position-absolute top-0 start-100 translate-middle" style="display: none;">0</span>
+        </button>
+        
+        <div id="chatWidget" class="chat-widget shadow-lg" style="display: none;">
+            <!-- Chat Header -->
+            <div class="chat-widget-header bg-orange text-white">
+                <div class="d-flex justify-content-between align-items-center p-3">
+                    <div>
+                        <h6 class="mb-0">Live Chat</h6>
+                        <small class="d-flex align-items-center">
+                            <span class="online-indicator me-1"></span>Admin Online
+                        </small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button id="clearChatBtn" class="btn btn-sm text-white" title="Clear Chat">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button id="closeChatWidget" class="btn btn-sm text-white">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chat Messages -->
+            <div class="chat-messages" id="floatingChatMessages">
+                <!-- Messages will be loaded here -->
+            </div>
+            
+            <!-- Product Tag Section -->
+            <div class="product-tag-section" style="display: none;">
+                <div class="p-2 border-top">
+                    <small class="text-muted">Tag Produk:</small>
+                    <div class="d-flex gap-2 mt-1">
+                        <input type="text" id="productSearchInput" class="form-control form-control-sm" placeholder="Cari produk...">
+                        <button id="cancelProductTag" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="productSearchResults" class="product-search-results mt-2"></div>
+                </div>
+            </div>
+            
+            <!-- Chat Input -->
+            <div class="chat-input-area">
+                <div class="d-flex p-3 border-top">
+                    <button id="tagProductBtn" class="btn btn-sm btn-outline-orange me-2" title="Tag Produk">
+                        <i class="fas fa-tag"></i>
+                    </button>
+                    <input type="text" id="floatingChatInput" class="form-control" placeholder="Ketik pesan...">
+                    <button id="sendFloatingMessage" class="btn btn-orange ms-2">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    .floating-chat-widget {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1050;
+    }
+
+    .floating-chat-widget button#chatToggle {
+        width: 60px;
+        height: 60px;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .chat-widget {
+        position: absolute;
+        bottom: 70px;
+        right: 0;
+        width: 350px;
+        max-height: 500px;
+        background: var(--white-primary);
+        border-radius: 15px;
+        border: 1px solid var(--glass-border);
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
+
+    [data-theme="dark"] .chat-widget {
+        background: var(--gray-light);
+        border-color: var(--glass-border);
+    }
+
+    .chat-widget-header {
+        border-radius: 15px 15px 0 0;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        max-height: 300px;
+        padding: 15px;
+        background: var(--white-primary);
+        color: var(--black-primary);
+    }
+
+    [data-theme="dark"] .chat-messages {
+        background: var(--gray-light);
+    }
+
+    .floating-message {
+        margin-bottom: 15px;
+        display: flex;
+    }
+
+    .floating-message.user {
+        justify-content: flex-end;
+    }
+
+    .floating-message.admin {
+        justify-content: flex-start;
+    }
+
+    .floating-message-content {
+        max-width: 80%;
+        padding: 8px 12px;
+        border-radius: 15px;
+        position: relative;
+        word-wrap: break-word;
+    }
+
+    .floating-message.user .floating-message-content {
+        background: var(--orange-primary);
+        color: white;
+    }
+
+    .floating-message.admin .floating-message-content {
+        background: var(--gray-light);
+        border: 1px solid var(--glass-border);
+        color: var(--black-primary);
+    }
+
+    [data-theme="dark"] .floating-message.admin .floating-message-content {
+        background: #404040;
+        border-color: #555;
+        color: white;
+    }
+
+    .floating-message-time {
+        font-size: 0.7em;
+        opacity: 0.7;
+        margin-top: 3px;
+    }
+
+    .product-tag {
+        display: inline-block;
+        background: var(--orange-secondary);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        margin: 5px 0;
+        text-decoration: none;
+        max-width: 100%;
+        word-wrap: break-word;
+    }
+
+    .product-tag:hover {
+        background: var(--orange-primary);
+        color: white;
+    }
+
+    .chat-input-area {
+        border-radius: 0 0 15px 15px;
+        background: var(--white-primary);
+    }
+
+    [data-theme="dark"] .chat-input-area {
+        background: var(--gray-light);
+    }
+
+    .product-search-results {
+        max-height: 150px;
+        overflow-y: auto;
+        background: var(--white-primary);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+    }
+
+    [data-theme="dark"] .product-search-results {
+        background: var(--gray-light);
+        border-color: var(--glass-border);
+    }
+
+    .product-search-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--glass-border);
+        transition: background 0.2s ease;
+    }
+
+    .product-search-item:hover {
+        background: var(--orange-primary);
+        color: white;
+    }
+
+    .product-search-item:last-child {
+        border-bottom: none;
+    }
+
+    .online-indicator {
+        width: 8px;
+        height: 8px;
+        background: #28a745;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    @media (max-width: 768px) {
+        .chat-widget {
+            width: 300px;
+            right: -10px;
+        }
+        
+        .floating-chat-widget {
+            bottom: 15px;
+            right: 15px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .chat-widget {
+            width: 280px;
+            right: -15px;
+        }
+    }
+    </style>
+    {% endif %}
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light mt-5">
+        <div class="container py-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="text-orange footer-brand">Hurtrock Music Store</h5>
+                    <p class="footer-slogan">Merchandise and Music Instruments Store</p>
+                    <p>Toko musik terpercaya dengan koleksi alat musik berkualitas tinggi.</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Kontak</h6>
+                    <p><i class="fas fa-map-marker-alt me-2"></i>Jl Gegerkalong Girang Complex Darut Tauhid Kav 22, Kota Bandung</p>
+                    <p><i class="fas fa-phone me-2"></i>0821-1555-8035</p>
+                    <p><i class="fas fa-clock me-2"></i>Senin–Jumat 09.30–18.00, Sabtu 09.30–17.00</p>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <p>&copy; 2025 Hurtrock Music Store. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
