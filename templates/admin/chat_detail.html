@@ -1,0 +1,949 @@
+{% extends "admin/base.html" %}
+{% block title %}Chat dengan {{ chat_room.user.name }} - Admin Panel{% endblock %}
+
+{% block extra_head %}
+<meta name="csrf-token" content="{{ csrf_token() }}" />
+<style>
+    /* Modern Professional Chat Interface */
+    .professional-chat-container {
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+        height: 88vh;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #e1e5e9;
+    }
+
+    [data-theme="dark"] .professional-chat-container {
+        background: #1a1a1a;
+        border-color: #333;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Chat Header - E-commerce Style */
+    .professional-chat-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px 24px;
+        color: white;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .customer-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 18px;
+        color: white;
+        margin-right: 16px;
+        border: 3px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .customer-info h3 {
+        margin: 0 0 4px 0;
+        font-size: 20px;
+        font-weight: 600;
+    }
+
+    .customer-email {
+        opacity: 0.9;
+        font-size: 14px;
+        font-weight: 400;
+    }
+
+    .chat-status {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        backdrop-filter: blur(10px);
+    }
+
+    .back-button {
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+
+    .back-button:hover {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+        transform: translateX(-2px);
+    }
+
+    /* Messages Container */
+    .professional-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px;
+        background: #f8fafc;
+        min-height: 0;
+    }
+
+    [data-theme="dark"] .professional-messages {
+        background: #0f0f0f;
+    }
+
+    /* Message Bubbles */
+    .message-group {
+        margin-bottom: 24px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .message-group.user {
+        align-items: flex-start;
+    }
+
+    .message-group.admin {
+        align-items: flex-end;
+    }
+
+    .message-bubble {
+        max-width: 75%;
+        padding: 16px 20px;
+        border-radius: 20px;
+        position: relative;
+        word-wrap: break-word;
+        margin-bottom: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        font-size: 15px;
+        line-height: 1.5;
+    }
+
+    .message-bubble.user {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-bottom-left-radius: 6px;
+        margin-left: 0;
+        margin-right: auto;
+    }
+
+    .message-bubble.admin {
+        background: #ffffff;
+        color: #2d3748;
+        border: 1px solid #e2e8f0;
+        border-bottom-right-radius: 6px;
+        margin-right: 0;
+        margin-left: auto;
+    }
+
+    [data-theme="dark"] .message-bubble.admin {
+        background: #2d2d2d;
+        color: #ffffff;
+        border-color: #404040;
+    }
+
+    .message-time {
+        font-size: 12px;
+        opacity: 0.7;
+        margin-top: 8px;
+        text-align: right;
+        font-weight: 500;
+    }
+
+    .message-group.user .message-time {
+        color: rgba(255, 255, 255, 0.8);
+        text-align: left;
+    }
+
+    .message-group.admin .message-time {
+        color: #718096;
+    }
+
+    [data-theme="dark"] .message-group.admin .message-time {
+        color: #a0aec0;
+    }
+
+    /* Professional Input Area */
+    .professional-input {
+        background: white;
+        border-top: 1px solid #e2e8f0;
+        padding: 20px 24px;
+    }
+
+    [data-theme="dark"] .professional-input {
+        background: #1a1a1a;
+        border-top-color: #333;
+    }
+
+    .input-container {
+        display: flex;
+        align-items: center;
+        background: #f7fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 24px;
+        padding: 4px;
+        transition: all 0.3s ease;
+    }
+
+    [data-theme="dark"] .input-container {
+        background: #2d2d2d;
+        border-color: #404040;
+    }
+
+    .input-container:focus-within {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        background: white;
+    }
+
+    [data-theme="dark"] .input-container:focus-within {
+        background: #333;
+        border-color: #667eea;
+    }
+
+    .message-input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        padding: 12px 20px;
+        font-size: 15px;
+        outline: none;
+        color: #2d3748;
+        font-weight: 400;
+    }
+
+    [data-theme="dark"] .message-input {
+        color: #ffffff;
+    }
+
+    .message-input::placeholder {
+        color: #a0aec0;
+        font-weight: 400;
+    }
+
+    .send-button {
+        width: 44px;
+        height: 44px;
+        border: none;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    .send-button:hover:not(:disabled) {
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    .send-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* Status Messages */
+    .status-message {
+        padding: 12px 20px;
+        border-radius: 12px;
+        margin: 8px 0;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        animation: slideInUp 0.3s ease;
+    }
+
+    .status-message.success {
+        background: linear-gradient(135deg, #48bb78, #38a169);
+        color: white;
+    }
+
+    .status-message.error {
+        background: linear-gradient(135deg, #f56565, #e53e3e);
+        color: white;
+    }
+
+    .status-message.info {
+        background: linear-gradient(135deg, #4299e1, #3182ce);
+        color: white;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #718096;
+    }
+
+    [data-theme="dark"] .empty-state {
+        color: #a0aec0;
+    }
+
+    .empty-state-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        color: #cbd5e0;
+    }
+
+    [data-theme="dark"] .empty-state-icon {
+        color: #4a5568;
+    }
+
+    .empty-state h3 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #4a5568;
+    }
+
+    [data-theme="dark"] .empty-state h3 {
+        color: #e2e8f0;
+    }
+
+    .empty-state p {
+        font-size: 14px;
+        color: #718096;
+    }
+
+    [data-theme="dark"] .empty-state p {
+        color: #a0aec0;
+    }
+
+    /* Scrollbar Styling */
+    .professional-messages::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .professional-messages::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .professional-messages::-webkit-scrollbar-thumb {
+        background: #cbd5e0;
+        border-radius: 10px;
+    }
+
+    .professional-messages::-webkit-scrollbar-thumb:hover {
+        background: #a0aec0;
+    }
+
+    [data-theme="dark"] .professional-messages::-webkit-scrollbar-thumb {
+        background: #4a5568;
+    }
+
+    [data-theme="dark"] .professional-messages::-webkit-scrollbar-thumb:hover {
+        background: #718096;
+    }
+
+    /* Animations */
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .message-bubble {
+        animation: fadeIn 0.3s ease;
+    }
+
+    /* Loading States */
+    .typing-indicator {
+        display: flex;
+        align-items: center;
+        padding: 16px 20px;
+        border-radius: 20px;
+        margin: 8px 0;
+        max-width: 80px;
+    }
+
+    [data-theme="dark"] .typing-indicator {
+        background: #2d2d2d;
+    }
+
+    .typing-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #a0aec0;
+        margin: 0 2px;
+        animation: typingAnimation 1.4s infinite;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingAnimation {
+        0%, 60%, 100% { transform: translateY(0); }
+        30% { transform: translateY(-10px); }
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .quick-action-btn {
+        background: rgba(102, 126, 234, 0.1);
+        border: 1px solid rgba(102, 126, 234, 0.2);
+        color: #667eea;
+        padding: 6px 12px;
+        border-radius: 16px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .quick-action-btn:hover {
+        background: rgba(102, 126, 234, 0.2);
+        color: #5a67d8;
+        transform: translateY(-1px);
+    }
+
+    [data-theme="dark"] .quick-action-btn {
+        background: rgba(102, 126, 234, 0.15);
+        border-color: rgba(102, 126, 234, 0.3);
+        color: #9ca3ff;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .professional-chat-container {
+            height: 92vh;
+            border-radius: 0;
+        }
+
+        .professional-messages {
+            padding: 16px;
+        }
+
+        .professional-input {
+            padding: 16px;
+        }
+
+        .message-bubble {
+            max-width: 85%;
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+
+        .professional-chat-header {
+            padding: 16px 20px;
+        }
+
+        .customer-info h3 {
+            font-size: 18px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .message-bubble {
+            max-width: 90%;
+            padding: 10px 14px;
+        }
+
+        .professional-chat-header {
+            padding: 12px 16px;
+        }
+
+        .professional-messages {
+            padding: 12px;
+        }
+
+        .professional-input {
+            padding: 12px 16px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="professional-chat-container">
+    <!-- Professional Header -->
+    <div class="professional-chat-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="customer-avatar">
+                    {{ chat_room.user.name[0]|upper }}
+                </div>
+                <div class="customer-info">
+                    <h3>{{ chat_room.user.name }}</h3>
+                    <div class="customer-email">{{ chat_room.user.email }}</div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div class="chat-status">
+                    <i class="fas fa-circle text-success me-1" style="font-size: 8px;"></i>
+                    Online
+                </div>
+                <a href="{{ url_for('admin_chats') }}" class="back-button">
+                    <i class="fas fa-arrow-left me-2"></i>Kembali
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Professional Messages Area -->
+    <div class="professional-messages" id="professionalChatMessages">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="message-group {{ message.sender_type }}">
+                <div class="message-bubble {{ message.sender_type }}">
+                    {{ message.message }}
+                </div>
+                <div class="message-time">
+                    {{ message.created_at.strftime('%H:%M') }}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h3>Belum ada percakapan</h3>
+                <p>Mulai percakapan dengan pelanggan Anda</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Professional Input Area -->
+    <div class="professional-input">
+        <div class="quick-actions">
+            <button class="quick-action-btn" onclick="insertQuickReply('Terima kasih telah menghubungi kami!')">
+                <i class="fas fa-heart me-1"></i>Terima kasih
+            </button>
+            <button class="quick-action-btn" onclick="insertQuickReply('Produk tersedia, silakan lakukan pemesanan.')">
+                <i class="fas fa-check me-1"></i>Tersedia
+            </button>
+            <button class="quick-action-btn" onclick="insertQuickReply('Mohon maaf, produk sedang kosong.')">
+                <i class="fas fa-times me-1"></i>Kosong
+            </button>
+        </div>
+
+        <form class="input-container" id="professionalChatForm" onsubmit="return false;">
+            <input
+                type="text"
+                id="professionalChatInput"
+                class="message-input"
+                placeholder="Ketik balasan Anda..."
+                autocomplete="off"
+            />
+            <button type="submit" id="sendProfessionalMessage" class="send-button">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+
+    <input type="hidden" id="roomId" value="{{ chat_room.id }}" />
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+// Global error handler to catch any JavaScript errors
+window.addEventListener('error', function(e) {
+    console.error('🚨 JavaScript Error:', e.error);
+    console.error('🚨 Stack:', e.error?.stack);
+});
+
+window.addEventListener('unhandledrejection', function(e) {
+    console.error('🚨 Unhandled Promise Rejection:', e.reason);
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("🚀 Professional chat system initializing...");
+
+    // Get DOM elements with detailed logging
+    console.log("🔍 Looking for DOM elements...");
+    const professionalChatInput = document.getElementById("professionalChatInput");
+    const sendProfessionalMessageBtn = document.getElementById("sendProfessionalMessage");
+    const professionalChatMessages = document.getElementById("professionalChatMessages");
+    const roomIdElement = document.getElementById("roomId");
+    const professionalChatForm = document.getElementById('professionalChatForm');
+
+    console.log("🔍 Elements found:", {
+        input: !!professionalChatInput,
+        button: !!sendProfessionalMessageBtn,
+        messages: !!professionalChatMessages,
+        roomId: !!roomIdElement,
+        form: !!professionalChatForm
+    });
+
+    // Validate essential elements
+    if (!professionalChatInput) {
+        console.error("❌ professionalChatInput not found!");
+        alert("Error: Input chat tidak ditemukan!");
+        return;
+    }
+
+    if (!sendProfessionalMessageBtn) {
+        console.error("❌ sendProfessionalMessageBtn not found!");
+        alert("Error: Tombol send tidak ditemukan!");
+        return;
+    }
+
+    if (!professionalChatMessages) {
+        console.error("❌ professionalChatMessages not found!");
+        alert("Error: Area pesan tidak ditemukan!");
+        return;
+    }
+
+    if (!roomIdElement) {
+        console.error("❌ roomIdElement not found!");
+        alert("Error: Room ID tidak ditemukan!");
+        return;
+    }
+
+    const roomId = roomIdElement.value;
+    console.log("✅ All elements found - Room ID:", roomId);
+
+    if (!roomId) {
+        console.error("❌ Room ID is empty!");
+        alert("Error: Room ID kosong!");
+        return;
+    }
+
+    // Initialize Socket.IO with error handling
+    let socket;
+    try {
+        console.log("🔌 Initializing Socket.IO...");
+        socket = io({
+            transports: ['polling', 'websocket'],
+            upgrade: true,
+            rememberUpgrade: true,
+            timeout: 5000
+        });
+
+        socket.emit('join', {});
+
+        socket.on('connect', function() {
+            console.log("✅ Socket connected successfully");
+        });
+
+        socket.on('disconnect', function() {
+            console.log("⚠️ Socket disconnected");
+        });
+
+        socket.on('new_message', function(data) {
+            console.log("📨 New message received:", data);
+            if (data.sender_type === 'user' && data.room_id == roomId) {
+                addMessage(data.message, 'user', data.timestamp);
+            }
+        });
+
+        socket.on('connect_error', function(error) {
+            console.error("❌ Socket connection error:", error);
+        });
+
+    } catch (error) {
+        console.error("❌ Socket initialization error:", error);
+    }
+
+    // Message display functions
+    function addMessage(message, sender, timestamp) {
+        try {
+            console.log("➕ Adding message:", { message: message.substring(0, 50), sender, timestamp });
+
+            const messageGroup = document.createElement("div");
+            messageGroup.className = `message-group ${sender}`;
+
+            const timeStr = timestamp || new Date().toLocaleTimeString("id-ID", {
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+
+            messageGroup.innerHTML = `
+                <div class="message-bubble ${sender}">
+                    ${escapeHtml(message)}
+                </div>
+                <div class="message-time">
+                    ${timeStr}
+                </div>
+            `;
+
+            professionalChatMessages.appendChild(messageGroup);
+            scrollToBottom();
+            console.log("✅ Message added successfully");
+        } catch (error) {
+            console.error("❌ Error adding message:", error);
+        }
+    }
+
+    function scrollToBottom() {
+        try {
+            if (professionalChatMessages) {
+                professionalChatMessages.scrollTop = professionalChatMessages.scrollHeight;
+            }
+        } catch (error) {
+            console.error("❌ Error scrolling:", error);
+        }
+    }
+
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function showStatusMessage(message, type = 'info') {
+        try {
+            console.log(`📢 Status message (${type}):`, message);
+
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status-message ${type}`;
+
+            const icon = type === 'success' ? 'fa-check' :
+                        type === 'error' ? 'fa-times' : 'fa-info';
+
+            statusDiv.innerHTML = `<i class="fas ${icon} me-2"></i>${message}`;
+
+            const inputSection = document.querySelector('.professional-input');
+            if (inputSection) {
+                inputSection.insertBefore(statusDiv, inputSection.firstChild);
+
+                setTimeout(() => {
+                    if (statusDiv.parentNode) {
+                        statusDiv.style.opacity = '0';
+                        statusDiv.style.transform = 'translateY(-20px)';
+                        setTimeout(() => statusDiv.remove(), 300);
+                    }
+                }, type === 'success' ? 2000 : 4000);
+            }
+        } catch (error) {
+            console.error("❌ Error showing status message:", error);
+        }
+    }
+
+    // Quick reply function
+    window.insertQuickReply = function(text) {
+        try {
+            console.log("📝 Quick reply:", text);
+            professionalChatInput.value = text;
+            professionalChatInput.focus();
+            updateSendButtonState();
+        } catch (error) {
+            console.error("❌ Error in quick reply:", error);
+        }
+    }
+
+    // Main send message function with comprehensive error handling
+    function sendMessage() {
+        console.log("📤 ===== SEND MESSAGE FUNCTION CALLED =====");
+
+        try {
+            const message = professionalChatInput.value.trim();
+            console.log("📝 Message to send:", message);
+
+            if (!message) {
+                console.log("❌ Empty message, focusing input");
+                professionalChatInput.focus();
+                return false;
+            }
+
+            if (!roomId) {
+                console.error("❌ No room ID available");
+                showStatusMessage("Error: Room ID tidak ditemukan", 'error');
+                return false;
+            }
+
+            console.log("🚀 Proceeding with send...");
+
+            // Show loading state
+            sendProfessionalMessageBtn.disabled = true;
+            const originalHTML = sendProfessionalMessageBtn.innerHTML;
+            sendProfessionalMessageBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            console.log("🔄 Loading state set");
+
+            // Create form data
+            const formData = new FormData();
+            formData.append('room_id', roomId);
+            formData.append('message', message);
+
+            console.log("📦 FormData created:", { roomId, messageLength: message.length });
+
+            // Send request
+            fetch('/admin/send_reply', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                console.log("📡 Response received:", response.status, response.statusText);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const contentType = response.headers.get('content-type');
+                console.log("📋 Content-Type:", contentType);
+
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json();
+                } else {
+                    return response.text().then(text => {
+                        console.log("📄 Raw response text:", text);
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            throw new Error('Server returned non-JSON: ' + text.substring(0, 200));
+                        }
+                    });
+                }
+            })
+            .then(data => {
+                console.log("✅ Response data:", data);
+
+                if (data.success) {
+                    console.log("🎉 Message sent successfully!");
+                    addMessage(message, 'admin', data.timestamp);
+                    professionalChatInput.value = '';
+                    updateSendButtonState();
+                    showStatusMessage('Pesan terkirim!', 'success');
+                } else {
+                    throw new Error(data.error || 'Unknown server error');
+                }
+            })
+            .catch(error => {
+                console.error("❌ Send message error:", error);
+                showStatusMessage(`Gagal mengirim pesan: ${error.message}`, 'error');
+            })
+            .finally(() => {
+                console.log("🔚 Finally block executed");
+                sendProfessionalMessageBtn.innerHTML = originalHTML;
+                sendProfessionalMessageBtn.disabled = false;
+                professionalChatInput.focus();
+                updateSendButtonState();
+            });
+
+            return true;
+
+        } catch (error) {
+            console.error("❌ Critical error in sendMessage:", error);
+            showStatusMessage(`Error kritis: ${error.message}`, 'error');
+
+            // Reset button state
+            sendProfessionalMessageBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            sendProfessionalMessageBtn.disabled = false;
+
+            return false;
+        }
+    }
+
+    function updateSendButtonState() {
+        try {
+            if (sendProfessionalMessageBtn && professionalChatInput) {
+                const hasText = professionalChatInput.value.trim().length > 0;
+                sendProfessionalMessageBtn.disabled = !hasText;
+                console.log("🔄 Button state updated:", hasText ? 'enabled' : 'disabled');
+            }
+        } catch (error) {
+            console.error("❌ Error updating button state:", error);
+        }
+    }
+
+    // Event listeners with detailed logging
+    console.log("🎯 Setting up event listeners...");
+
+    // Button click handler
+    if (sendProfessionalMessageBtn) {
+        sendProfessionalMessageBtn.addEventListener('click', function(e) {
+            console.log("🖱️ ===== BUTTON CLICKED =====");
+            e.preventDefault();
+            e.stopPropagation();
+            sendMessage();
+        });
+        console.log("✅ Button click listener added");
+    } else {
+        console.error("❌ Cannot add button click listener - button not found");
+    }
+
+    // Input keydown handler
+    if (professionalChatInput) {
+        professionalChatInput.addEventListener('keydown', function(e) {
+            console.log("⌨️ Key pressed:", e.key, e.keyCode);
+
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                console.log("🚀 ===== ENTER KEY PRESSED =====");
+                e.preventDefault();
+                e.stopPropagation();
+                sendMessage();
+            }
+        });
+
+        professionalChatInput.addEventListener('input', function(e) {
+            console.log("📝 Input changed:", e.target.value.length, "chars");
+            updateSendButtonState();
+        });
+
+        console.log("✅ Input event listeners added");
+        professionalChatInput.focus();
+    } else {
+        console.error("❌ Cannot add input listeners - input not found");
+    }
+
+    // Form submit handler
+    if (professionalChatForm) {
+        professionalChatForm.addEventListener('submit', function(e) {
+            console.log("📝 ===== FORM SUBMITTED =====");
+            e.preventDefault();
+            e.stopPropagation();
+            sendMessage();
+        });
+        console.log("✅ Form submit listener added");
+    } else {
+        console.log("⚠️ Form not found, relying on button and input listeners");
+    }
+
+    // Initial setup
+    updateSendButtonState();
+    scrollToBottom();
+
+    console.log("✅ Professional chat system initialized successfully!");
+    console.log("🎯 Testing - click this button or press Enter in input to test");
+
+    // Add test function to window for debugging
+    window.testSendMessage = function() {
+        console.log("🧪 TEST FUNCTION CALLED");
+        professionalChatInput.value = "Test message from console";
+        sendMessage();
+    };
+
+    console.log("🧪 Test function added: window.testSendMessage()");
+});
+</script>
+{% endblock %}
