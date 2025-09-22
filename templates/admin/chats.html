@@ -1,0 +1,110 @@
+
+{% extends "admin/base.html" %}
+
+{% block title %}Chat Pelanggan - Admin{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Chat Pelanggan</h2>
+    <div class="badge bg-warning">{{ chat_rooms|length }} Chat Aktif</div>
+</div>
+
+<div class="row">
+    {% for chat_room in chat_rooms %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">{{ chat_room.user.name }}</h6>
+                {% set unread_count = chat_room.messages | selectattr('sender_type', 'equalto', 'user') | selectattr('is_read', 'false') | list | length %}
+                {% if unread_count > 0 %}
+                <span class="badge bg-danger">{{ unread_count }}</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">
+                    <svg class="admin-svg-icon me-1" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <path d="M22 6L12 13L2 6" stroke="currentColor" stroke-width="2"/>
+                    </svg>{{ chat_room.user.email }}
+                </p>
+                {% if chat_room.messages %}
+                    {% set last_message = chat_room.messages[-1] %}
+                    <div class="border-start border-3 ps-2 mb-2">
+                        <small class="text-muted">Pesan terakhir:</small>
+                        <p class="mb-1">{{ last_message.message[:50] }}{% if last_message.message|length > 50 %}...{% endif %}</p>
+                        <small class="text-muted">{{ last_message.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                    </div>
+                {% endif %}
+                <a href="{{ url_for('admin_chat_detail', room_id=chat_room.id) }}" class="btn btn-primary btn-sm">
+                    <svg class="admin-svg-icon me-1" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C17.5 2 22 6.5 22 12C22 17.5 17.5 22 12 22C10.3 22 8.8 21.6 7.5 20.9L2 22L3.1 16.5C2.4 15.2 2 13.7 2 12C2 6.5 6.5 2 12 2Z" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <circle cx="8" cy="12" r="1" fill="currentColor"/>
+                        <circle cx="12" cy="12" r="1" fill="currentColor"/>
+                        <circle cx="16" cy="12" r="1" fill="currentColor"/>
+                    </svg>Buka Chat
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    
+    {% if not chat_rooms %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <svg class="admin-svg-icon text-muted mb-3" width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C17.5 2 22 6.5 22 12C22 17.5 17.5 22 12 22C10.3 22 8.8 21.6 7.5 20.9L2 22L3.1 16.5C2.4 15.2 2 13.7 2 12C2 6.5 6.5 2 12 2Z" stroke="currentColor" stroke-width="2" fill="none"/>
+                <circle cx="8" cy="12" r="1" fill="currentColor"/>
+                <circle cx="12" cy="12" r="1" fill="currentColor"/>
+                <circle cx="16" cy="12" r="1" fill="currentColor"/>
+            </svg>
+            <h4 class="text-muted">Belum ada chat dari pelanggan</h4>
+            <p class="text-muted">Chat akan muncul ketika pelanggan mulai mengirim pesan</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const socket = io();
+
+// Join admin room
+socket.emit('join', {});
+
+// Handle new messages
+socket.on('new_message', function(data) {
+    // Show notification or update chat list
+    showToast(`Pesan baru dari ${data.user_name}: ${data.message}`, 'info');
+    
+    // Refresh page to show updated chat list
+    setTimeout(() => {
+        window.location.reload();
+    }, 2000);
+});
+
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-${type} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    toast.addEventListener('hidden.bs.toast', function() {
+        document.body.removeChild(toast);
+    });
+}
+</script>
+{% endblock %}
