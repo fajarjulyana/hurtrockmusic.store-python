@@ -1,0 +1,724 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Chat dengan {{ chat_room.user.name }} - Admin{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<style>
+.chat-container {
+    height: 60vh;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    background: #f8f9fa;
+}
+
+.floating-message {
+    margin-bottom: 15px;
+    display: flex;
+}
+
+.floating-message.user {
+    justify-content: flex-start;
+}
+
+.floating-message.admin {
+    justify-content: flex-end;
+}
+
+.floating-message-content {
+    max-width: 70%;
+    padding: 10px 15px;
+    border-radius: 15px;
+    position: relative;
+    word-wrap: break-word;
+}
+
+.floating-message.user .floating-message-content {
+    background: #e9ecef;
+    border: 1px solid #dee2e6;
+    color: #333;
+}
+
+.floating-message.admin .floating-message-content {
+    background: #007bff;
+    color: white;
+}
+
+.message-time {
+    font-size: 0.8em;
+    opacity: 0.7;
+    margin-top: 5px;
+}
+
+.chat-input-section {
+    padding: 15px;
+    border-top: 1px solid #dee2e6;
+    background: white;
+    border-radius: 0 0 10px 10px;
+}
+
+.product-tag-section {
+    margin-bottom: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    display: none;
+}
+
+.product-search-item {
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 5px;
+    margin-bottom: 5px;
+    transition: background-color 0.2s;
+}
+
+.product-search-item:hover {
+    background-color: #e9ecef;
+}
+
+.quick-reply-section .btn {
+    margin: 2px;
+    font-size: 0.85em;
+}
+
+.btn-quick-reply {
+    background: transparent;
+    border: 1px solid #007bff;
+    color: #007bff;
+    cursor: pointer;
+}
+
+.btn-quick-reply:hover {
+    background: #007bff;
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">Chat dengan {{ chat_room.user.name }}</h5>
+                        <small>{{ chat_room.user.email }}</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button id="clearAdminChat" class="btn btn-danger btn-sm">
+                            <i class="fas fa-trash me-1"></i>Clear Chat
+                        </button>
+                        <a href="{{ url_for('admin_chats') }}" class="btn btn-light btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>Kembali
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-container">
+                <div class="chat-messages" id="adminChatMessages">
+                    {% if messages %}
+                        {% for message in messages %}
+                        <div class="floating-message {{ message.sender_type }}">
+                            <div class="floating-message-content">
+                                <div>{{ message.message }}</div>
+                                {% if message.product_id and message.tagged_product %}
+                                <div class="mt-2">
+                                    <a href="{{ url_for('product_detail', product_id=message.product_id) }}" 
+                                       class="btn btn-sm btn-outline-primary" target="_blank">
+                                        <i class="fas fa-tag me-1"></i>{{ message.tagged_product.name }}
+                                    </a>
+                                </div>
+                                {% endif %}
+                                <div class="message-time">{{ message.created_at.strftime('%H:%M') }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-comments fa-2x mb-2"></i>
+                            <p>Belum ada percakapan</p>
+                            <small>Menunggu pesan dari pelanggan</small>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="chat-input-section">
+                    <div class="product-tag-section" id="productTagSection">
+                        <div class="d-flex align-items-center mb-2">
+                            <input type="text" id="productSearchInput" class="form-control me-2" 
+                                   placeholder="Cari produk untuk ditag...">
+                            <button type="button" id="cancelProductTag" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="productSearchResults" style="max-height: 150px; overflow-y: auto;"></div>
+                    </div>
+
+                    <div class="d-flex align-items-center">
+                        <input type="hidden" id="roomId" value="{{ chat_room.id }}">
+                        <input type="hidden" id="selectedProductId" value="">
+                        <input type="text" id="adminChatInput" class="form-control me-2" 
+                               placeholder="Ketik balasan Anda..." autocomplete="off">
+                        <button type="button" id="tagProductBtn" class="btn btn-outline-primary me-2" title="Tag Produk">
+                            <i class="fas fa-tag"></i>
+                        </button>
+                        <button type="button" id="sendAdminMessage" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-header">
+                <h6 class="mb-0">Informasi Pelanggan</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Nama:</strong> {{ chat_room.user.name }}</p>
+                <p><strong>Email:</strong> {{ chat_room.user.email }}</p>
+                {% if chat_room.user.phone %}
+                <p><strong>Phone:</strong> {{ chat_room.user.phone }}</p>
+                {% endif %}
+                <p><strong>Chat dimulai:</strong> {{ chat_room.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+
+                <hr>
+
+                <h6>Quick Replies</h6>
+                <div class="quick-reply-section">
+                    <button type="button" class="btn btn-quick-reply btn-sm" data-quick-message="Terima kasih telah menghubungi kami! Ada yang bisa kami bantu?">
+                        Salam Pembuka
+                    </button>
+                    <button type="button" class="btn btn-quick-reply btn-sm" data-quick-message="Produk tersedia dengan stok terbatas. Apakah ingin langsung order?">
+                        Konfirmasi Stok
+                    </button>
+                    <button type="button" class="btn btn-quick-reply btn-sm" data-quick-message="Untuk informasi lebih detail, silakan hubungi WhatsApp kami di 0821-1555-8035">
+                        Info Kontak
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Admin Chat System - Clone dari floating chat buyer
+let adminSocket = null;
+const adminChatMessages = document.getElementById('adminChatMessages');
+const adminChatInput = document.getElementById('adminChatInput');
+const sendAdminMessageBtn = document.getElementById('sendAdminMessage');
+const clearAdminChatBtn = document.getElementById('clearAdminChat');
+const roomId = document.getElementById('roomId').value;
+
+// Product tagging elements
+const tagProductBtn = document.getElementById('tagProductBtn');
+const productTagSection = document.getElementById('productTagSection');
+const productSearchInput = document.getElementById('productSearchInput');
+const cancelProductTag = document.getElementById('cancelProductTag');
+const productSearchResults = document.getElementById('productSearchResults');
+const selectedProductIdField = document.getElementById('selectedProductId');
+
+// Initialize admin chat
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Admin chat initializing for room:', roomId);
+    initializeAdminSocket();
+    initializeEventListeners();
+    scrollAdminChatToBottom();
+});
+
+// Socket.IO initialization
+function initializeAdminSocket() {
+    try {
+        adminSocket = io();
+
+        // Join admin room
+        adminSocket.emit('join', {});
+
+        // Handle new messages from user
+        adminSocket.on('new_message', function(data) {
+            if (data.room_id == roomId && data.sender_type === 'user') {
+                console.log('New message from user:', data);
+                addAdminMessage(data.message, 'user', data.timestamp, data.product_id);
+                scrollAdminChatToBottom();
+            }
+        });
+
+        // Handle admin's own messages being confirmed
+        adminSocket.on('admin_message_sent', function(data) {
+            if (data.room_id == roomId) {
+                console.log('Admin message confirmed:', data);
+                // Message already added optimistically, just confirm
+            }
+        });
+
+        console.log('Admin socket initialized successfully');
+    } catch (error) {
+        console.log('Socket.IO not available:', error);
+    }
+}
+
+// Initialize event listeners
+function initializeEventListeners() {
+    // Send message button
+    if (sendAdminMessageBtn) {
+        sendAdminMessageBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            sendAdminChatMessage();
+        });
+    }
+
+    // Enter key for sending message
+    if (adminChatInput) {
+        adminChatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendAdminChatMessage();
+            }
+        });
+    }
+
+    // Clear chat button
+    if (clearAdminChatBtn) {
+        clearAdminChatBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (confirm('Yakin ingin menghapus semua chat? Tindakan ini tidak dapat dibatalkan.')) {
+                clearAdminChatMessages();
+            }
+        });
+    }
+
+    // Product tagging
+    if (tagProductBtn) {
+        tagProductBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            showProductTagSection();
+        });
+    }
+
+    if (cancelProductTag) {
+        cancelProductTag.addEventListener('click', function(e) {
+            e.preventDefault();
+            hideProductTagSection();
+        });
+    }
+
+    // Product search
+    if (productSearchInput) {
+        let searchTimeout;
+        productSearchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+
+            if (query.length >= 2) {
+                searchTimeout = setTimeout(() => {
+                    searchProducts(query);
+                }, 300);
+            } else {
+                if (productSearchResults) {
+                    productSearchResults.innerHTML = '';
+                }
+            }
+        });
+    }
+
+    // Quick reply buttons
+    const quickReplyBtns = document.querySelectorAll('.btn-quick-reply');
+    quickReplyBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const message = this.getAttribute('data-quick-message');
+            if (message && adminChatInput) {
+                adminChatInput.value = message;
+                adminChatInput.focus();
+            }
+        });
+    });
+
+    console.log('Event listeners initialized');
+}
+
+// Send admin message - Clone dari floating chat
+function sendAdminChatMessage() {
+    const message = adminChatInput ? adminChatInput.value.trim() : '';
+    const productId = selectedProductIdField ? selectedProductIdField.value : '';
+
+    console.log('Sending admin message:', { message, roomId, productId });
+
+    if (!message) {
+        showToast('Pesan tidak boleh kosong', 'warning');
+        return;
+    }
+
+    if (!roomId) {
+        showToast('Room ID tidak ditemukan', 'error');
+        return;
+    }
+
+    // Disable send button
+    if (sendAdminMessageBtn) {
+        sendAdminMessageBtn.disabled = true;
+        sendAdminMessageBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('room_id', roomId);
+    formData.append('message', message);
+    if (productId) {
+        formData.append('product_id', productId);
+    }
+
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+    if (csrfToken) {
+        formData.append('csrf_token', csrfToken);
+    }
+
+    // Send to server
+    fetch('/admin/send_reply', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+            // Add message optimistically
+            const timestamp = data.timestamp || getCurrentTime();
+            addAdminMessage(message, 'admin', timestamp, productId);
+            scrollAdminChatToBottom();
+
+            // Clear input and reset form
+            if (adminChatInput) {
+                adminChatInput.value = '';
+            }
+            hideProductTagSection();
+
+            showToast('Pesan berhasil dikirim', 'success');
+
+            // Focus back to input
+            if (adminChatInput) {
+                adminChatInput.focus();
+            }
+        } else {
+            console.error('Server error:', data.error);
+            showToast(data.error || 'Gagal mengirim pesan', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Send message error:', error);
+        showToast('Gagal mengirim pesan. Silakan coba lagi.', 'error');
+    })
+    .finally(() => {
+        // Re-enable send button
+        if (sendAdminMessageBtn) {
+            sendAdminMessageBtn.disabled = false;
+            sendAdminMessageBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        }
+    });
+}
+
+// Add message to chat - Clone dari floating chat
+function addAdminMessage(message, sender, timestamp, productId = null) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `floating-message ${sender}`;
+
+    let messageContent = `<div>${message}</div>`;
+
+    // Add product tag if exists
+    if (productId) {
+        messageContent += `<div class="mt-2">
+            <a href="/product/${productId}" class="btn btn-sm btn-outline-primary" target="_blank">
+                <i class="fas fa-tag me-1"></i>Lihat Produk
+            </a>
+        </div>`;
+    }
+
+    messageDiv.innerHTML = `
+        <div class="floating-message-content">
+            ${messageContent}
+            <div class="message-time">${timestamp}</div>
+        </div>
+    `;
+
+    if (adminChatMessages) {
+        adminChatMessages.appendChild(messageDiv);
+    }
+}
+
+// Clear admin chat
+function clearAdminChatMessages() {
+    console.log('Clearing admin chat for room:', roomId);
+
+    const formData = new FormData();
+    formData.append('room_id', roomId);
+
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+    if (csrfToken) {
+        formData.append('csrf_token', csrfToken);
+    }
+
+    fetch('/admin/chat/clear', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        console.log('Clear chat response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Clear chat response:', data);
+        if (data.success) {
+            // Clear messages display
+            if (adminChatMessages) {
+                adminChatMessages.innerHTML = `
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-comments fa-2x mb-2"></i>
+                        <p>Chat telah dihapus</p>
+                        <small>Menunggu pesan baru dari pelanggan</small>
+                    </div>
+                `;
+            }
+            showToast('Chat berhasil dihapus', 'success');
+        } else {
+            console.error('Server error:', data.error);
+            showToast(data.error || 'Gagal menghapus chat', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error clearing chat:', error);
+        showToast('Gagal menghapus chat. Silakan coba lagi.', 'error');
+    });
+}
+
+// Product tagging functions
+function showProductTagSection() {
+    if (productTagSection) {
+        productTagSection.style.display = 'block';
+        if (productSearchInput) {
+            productSearchInput.focus();
+        }
+    }
+}
+
+function hideProductTagSection() {
+    if (productTagSection) {
+        productTagSection.style.display = 'none';
+    }
+    if (productSearchInput) {
+        productSearchInput.value = '';
+    }
+    if (productSearchResults) {
+        productSearchResults.innerHTML = '';
+    }
+    if (selectedProductIdField) {
+        selectedProductIdField.value = '';
+    }
+    // Reset tag button
+    if (tagProductBtn) {
+        tagProductBtn.innerHTML = '<i class="fas fa-tag"></i>';
+        tagProductBtn.title = 'Tag Produk';
+    }
+}
+
+function searchProducts(query) {
+    console.log('Searching products for:', query);
+
+    fetch(`/search?q=${encodeURIComponent(query)}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(products => {
+            console.log('Search results:', products);
+            displayProductResults(products);
+        })
+        .catch(error => {
+            console.error('Error searching products:', error);
+            if (productSearchResults) {
+                productSearchResults.innerHTML = '<div class="text-danger p-2">Error searching products</div>';
+            }
+        });
+}
+
+function displayProductResults(products) {
+    if (!productSearchResults) {
+        return;
+    }
+
+    if (!products || products.length === 0) {
+        productSearchResults.innerHTML = '<div class="text-muted p-2">Tidak ada produk ditemukan</div>';
+        return;
+    }
+
+    const resultsHTML = products.map(product => {
+        const safeName = product.name.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+        const price = parseFloat(product.price || 0).toLocaleString('id-ID');
+
+        return `
+            <div class="product-search-item" onclick="selectProduct(${product.id}, '${safeName}')">
+                <div class="d-flex align-items-center">
+                    <img src="${product.image_url || '/static/images/placeholder.jpg'}" alt="${safeName}" 
+                         style="width: 40px; height: 40px; object-fit: cover;" class="rounded me-2"
+                         onerror="this.src='/static/images/placeholder.jpg'">
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">${product.name}</div>
+                        <div class="text-muted small">${product.brand || ''}</div>
+                        <div class="text-primary small">Rp ${price}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    productSearchResults.innerHTML = resultsHTML;
+}
+
+function selectProduct(productId, productName) {
+    console.log('Selecting product:', productId, productName);
+
+    if (selectedProductIdField) {
+        selectedProductIdField.value = productId;
+    }
+
+    if (productSearchInput) {
+        productSearchInput.value = productName;
+    }
+
+    if (productSearchResults) {
+        productSearchResults.innerHTML = '';
+    }
+
+    // Visual indicator
+    if (tagProductBtn) {
+        tagProductBtn.innerHTML = '<i class="fas fa-check text-success"></i>';
+        tagProductBtn.title = `Produk dipilih: ${productName}`;
+    }
+
+    showToast(`Produk "${productName}" dipilih untuk ditag`, 'success');
+}
+
+// Utility functions
+function scrollAdminChatToBottom() {
+    if (adminChatMessages) {
+        adminChatMessages.scrollTop = adminChatMessages.scrollHeight;
+    }
+}
+
+function getCurrentTime() {
+    return new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'});
+}
+
+function showToast(message, type = 'info') {
+    console.log('Showing toast:', message, type);
+
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+        toastContainer.style.zIndex = '9999';
+        document.body.appendChild(toastContainer);
+    }
+
+    const toastId = 'toast-' + Date.now();
+    const bgClass = type === 'success' ? 'success' : 
+                   type === 'error' || type === 'danger' ? 'danger' : 
+                   type === 'warning' ? 'warning' : 'info';
+
+    const toast = document.createElement('div');
+    toast.id = toastId;
+    toast.className = `toast align-items-center text-white bg-${bgClass} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="hideToast('${toastId}')"></button>
+        </div>
+    `;
+
+    toastContainer.appendChild(toast);
+
+    // Show toast
+    toast.style.display = 'block';
+    setTimeout(() => {
+        hideToast(toastId);
+    }, 3000);
+}
+
+function hideToast(toastId) {
+    const toast = document.getElementById(toastId);
+    if (toast) {
+        toast.style.opacity = '0';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }
+}
+
+// Debug info
+console.log('=== Admin Chat Debug Info ===');
+console.log('Room ID:', roomId);
+console.log('Send button:', sendAdminMessageBtn);
+console.log('Chat input:', adminChatInput);
+console.log('Chat messages container:', adminChatMessages);
+console.log('Clear button:', clearAdminChatBtn);
+console.log('Socket status:', adminSocket ? 'Connected' : 'Not connected');
+console.log('=== End Debug Info ===');
+
+// Test function
+window.testAdminChat = function() {
+    console.log('Testing admin chat...');
+    if (adminChatInput) {
+        adminChatInput.value = 'Test message from admin';
+        sendAdminChatMessage();
+    }
+};
+
+console.log('Admin chat system initialized. Use testAdminChat() to test.');
+</script>
+{% endblock %}
