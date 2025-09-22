@@ -1,0 +1,334 @@
+
+{% extends "admin/base.html" %}
+
+{% block title %}Chat dengan {{ chat_room.user.name }} - Admin{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<style>
+.chat-container {
+    height: 60vh;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    background: #f8f9fa;
+}
+
+.message {
+    margin-bottom: 15px;
+    display: flex;
+}
+
+.message.user {
+    justify-content: flex-start;
+}
+
+.message.admin {
+    justify-content: flex-end;
+}
+
+.message-content {
+    max-width: 70%;
+    padding: 10px 15px;
+    border-radius: 15px;
+}
+
+.message.user .message-content {
+    background: #e9ecef;
+    border: 1px solid #dee2e6;
+}
+
+.message.admin .message-content {
+    background: #007bff;
+    color: white;
+}
+
+.message-time {
+    font-size: 0.8em;
+    opacity: 0.7;
+    margin-top: 5px;
+}
+
+.chat-input {
+    padding: 15px;
+    border-top: 1px solid #dee2e6;
+    background: white;
+    border-radius: 0 0 10px 10px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">Chat dengan {{ chat_room.user.name }}</h5>
+                        <small>{{ chat_room.user.email }}</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button id="adminClearChat" class="btn btn-danger btn-sm" onclick="clearAdminChat({{ chat_room.id }})">
+                            <i class="fas fa-trash me-1"></i>Clear Chat
+                        </button>
+                        <a href="{{ url_for('admin_chats') }}" class="btn btn-light btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>Kembali
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    {% if messages %}
+                        {% for message in messages %}
+                        <div class="message {{ message.sender_type }}">
+                            <div class="message-content">
+                                <div>{{ message.message }}</div>
+                                {% if message.product_id and message.tagged_product %}
+                                <div class="mt-2">
+                                    <a href="{{ url_for('product_detail', product_id=message.product_id) }}" 
+                                       class="btn btn-sm btn-outline-primary" target="_blank">
+                                        <i class="fas fa-tag me-1"></i>{{ message.tagged_product.name }}
+                                    </a>
+                                </div>
+                                {% endif %}
+                                <div class="message-time">{{ message.created_at.strftime('%H:%M') }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-comments fa-2x mb-2"></i>
+                            <p>Belum ada percakapan</p>
+                            <small>Menunggu pesan dari pelanggan</small>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="chat-input">
+                    <form id="replyForm" class="d-flex">
+                        <input type="hidden" name="room_id" value="{{ chat_room.id }}">
+                        <input type="text" id="messageInput" name="message" class="form-control me-2" 
+                               placeholder="Ketik balasan Anda..." required>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-header">
+                <h6 class="mb-0">Informasi Pelanggan</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Nama:</strong> {{ chat_room.user.name }}</p>
+                <p><strong>Email:</strong> {{ chat_room.user.email }}</p>
+                {% if chat_room.user.phone %}
+                <p><strong>Phone:</strong> {{ chat_room.user.phone }}</p>
+                {% endif %}
+                <p><strong>Chat dimulai:</strong> {{ chat_room.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                
+                <hr>
+                
+                <h6>Quick Replies</h6>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm" onclick="quickReply('Terima kasih telah menghubungi kami! Ada yang bisa kami bantu?')">
+                        Salam Pembuka
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="quickReply('Produk tersedia dengan stok terbatas. Apakah ingin langsung order?')">
+                        Konfirmasi Stok
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="quickReply('Untuk informasi lebih detail, silakan hubungi WhatsApp kami di 0821-1555-8035')">
+                        Info Kontak
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const socket = io();
+const chatMessages = document.getElementById('chatMessages');
+const messageInput = document.getElementById('messageInput');
+const replyForm = document.getElementById('replyForm');
+
+// Join admin room
+socket.emit('join', {});
+
+// Handle new messages from user
+socket.on('new_message', function(data) {
+    if (data.room_id == {{ chat_room.id }}) {
+        addMessage(data.message, 'user', data.timestamp);
+        scrollToBottom();
+    }
+});
+
+// Handle admin's own messages being sent
+socket.on('admin_message_sent', function(data) {
+    if (data.room_id == {{ chat_room.id }}) {
+        // Remove the optimistically added message and add the real one
+        const messages = chatMessages.querySelectorAll('.message.admin');
+        const lastAdminMessage = messages[messages.length - 1];
+        if (lastAdminMessage) {
+            lastAdminMessage.remove();
+        }
+        addMessage(data.message, 'admin', data.timestamp);
+        scrollToBottom();
+    }
+});
+
+// Handle form submission
+replyForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(replyForm);
+    const message = formData.get('message');
+    
+    if (!message.trim()) return;
+    
+    // Add message to chat optimistically (will be replaced when server confirms)
+    addMessage(message, 'admin', new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}));
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('meta[name=csrf-token]');
+    const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+    };
+    
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken.getAttribute('content');
+    }
+    
+    // Send to server
+    fetch('/admin/send_reply', {
+        method: 'POST',
+        headers: headers,
+        body: new URLSearchParams(formData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            messageInput.value = '';
+            showToast('Pesan berhasil dikirim', 'success');
+        } else {
+            // If failed, remove the optimistic message
+            const messages = chatMessages.querySelectorAll('.message.admin');
+            const lastAdminMessage = messages[messages.length - 1];
+            if (lastAdminMessage) {
+                lastAdminMessage.remove();
+            }
+            showToast(data.error || 'Gagal mengirim pesan', 'error');
+        }
+    })
+    .catch(error => {
+        // If failed, remove the optimistic message
+        const messages = chatMessages.querySelectorAll('.message.admin');
+        const lastAdminMessage = messages[messages.length - 1];
+        if (lastAdminMessage) {
+            lastAdminMessage.remove();
+        }
+        showToast('Gagal mengirim pesan. Silakan coba lagi.', 'error');
+        console.error('Error sending message:', error);
+    });
+    
+    scrollToBottom();
+});
+
+function addMessage(message, sender, timestamp) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}`;
+    messageDiv.innerHTML = `
+        <div class="message-content">
+            <div>${message}</div>
+            <div class="message-time">${timestamp}</div>
+        </div>
+    `;
+    chatMessages.appendChild(messageDiv);
+}
+
+function scrollToBottom() {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function quickReply(message) {
+    messageInput.value = message;
+    messageInput.focus();
+}
+
+function clearAdminChat(roomId) {
+    if (confirm('Yakin ingin menghapus semua chat? Tindakan ini tidak dapat dibatalkan.')) {
+        fetch('/admin/chat/clear', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ room_id: roomId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Clear messages display with proper empty state
+                chatMessages.innerHTML = `
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-comments fa-2x mb-2"></i>
+                        <p>Chat telah dihapus</p>
+                        <small>Menunggu pesan baru dari pelanggan</small>
+                    </div>
+                `;
+                showToast('Chat berhasil dihapus', 'success');
+            } else {
+                showToast('Gagal menghapus chat', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error clearing chat:', error);
+            showToast('Gagal menghapus chat', 'error');
+        });
+    }
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-${type} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    toast.addEventListener('hidden.bs.toast', function() {
+        document.body.removeChild(toast);
+    });
+}
+
+// Initial scroll to bottom
+scrollToBottom();
+</script>
+{% endblock %}
