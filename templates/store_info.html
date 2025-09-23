@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Info Toko - Hurtrock Music Store{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-lg">
+            <div class="card-body">
+                <h1 class="text-orange mb-4">
+                    <i class="fas fa-store me-3"></i>Hurtrock Music Store
+                </h1>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-map-marker-alt text-orange me-2"></i>Alamat</h5>
+                        <p class="mb-3">
+                            Jl Gegerkalong Girang Complex Darut Tauhid Kav 22<br>
+                            Kota Bandung, Jawa Barat<br>
+                            Indonesia
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-phone text-orange me-2"></i>Kontak</h5>
+                        <p class="mb-3">
+                            <strong>Telepon:</strong> 0821-1555-8035<br>
+                            <strong>WhatsApp:</strong> 0821-1555-8035<br>
+                            <strong>Email:</strong> info@hurtrockmusic.com
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-clock text-orange me-2"></i>Jam Operasional</h5>
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Senin - Jumat</strong></td>
+                                <td>09:30 - 18:00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Sabtu</strong></td>
+                                <td>09:30 - 17:00</td>
+                            </tr>
+                            <tr class="text-danger">
+                                <td><strong>Minggu</strong></td>
+                                <td>Tutup</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-info-circle text-orange me-2"></i>Tentang Kami</h5>
+                        <p>
+                            Hurtrock Music Store adalah toko musik terpercaya yang menyediakan 
+                            berbagai alat musik berkualitas tinggi. Kami melayani musisi dari 
+                            berbagai level, mulai dari pemula hingga profesional.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h5><i class="fas fa-star text-orange me-2"></i>Keunggulan Kami</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check-circle text-success me-2"></i>Produk original bergaransi</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i>Harga kompetitif</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i>Konsultasi gratis</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check-circle text-success me-2"></i>Pengiriman ke seluruh Indonesia</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i>Service center terpercaya</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i>Customer support 24/7</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h5><i class="fas fa-shopping-bag text-orange me-2"></i>Kategori Produk</h5>
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <span class="badge bg-orange p-2">
+                                <i class="fas fa-guitar me-1"></i>Gitar
+                            </span>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <span class="badge bg-orange p-2">
+                                <i class="fas fa-drum me-1"></i>Drum
+                            </span>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <span class="badge bg-orange p-2">
+                                <i class="fas fa-piano me-1"></i>Keyboard
+                            </span>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <span class="badge bg-orange p-2">
+                                <i class="fas fa-headphones me-1"></i>Aksesoris
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <a href="{{ url_for('products') }}" class="btn btn-orange btn-lg me-3">
+                        <i class="fas fa-shopping-bag me-2"></i>Jelajahi Produk
+                    </a>
+                    <a href="https://wa.me/6282115558035" target="_blank" class="btn btn-success btn-lg">
+                        <i class="fab fa-whatsapp me-2"></i>Hubungi WhatsApp
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow">
+            <div class="card-body">
+                <h5 class="text-orange mb-3">
+                    <i class="fas fa-map me-2"></i>Lokasi Toko
+                </h5>
+                <div class="embed-responsive embed-responsive-16by9 mb-3">
+                    <iframe 
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.2!2d107.5745!3d-6.8568!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNsKwNTEnMjQuNSJTIDEwN8KwMzQnMjguMyJF!5e0!3m2!1sid!2sid!4v1234567890!5m2!1sid!2sid" 
+                        width="100%" 
+                        height="250" 
+                        style="border:0; border-radius: 8px;" 
+                        allowfullscreen="" 
+                        loading="lazy" 
+                        referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                </div>
+                <p class="small text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Lokasi strategis di kompleks Darut Tauhid, mudah diakses dengan kendaraan pribadi maupun umum.
+                </p>
+            </div>
+        </div>
+        
+        <div class="card shadow mt-4">
+            <div class="card-body">
+                <h5 class="text-orange mb-3">
+                    <i class="fas fa-envelope me-2"></i>Hubungi Kami
+                </h5>
+                <form>
+                    <div class="mb-3">
+                        <input type="text" class="form-control" placeholder="Nama Anda" required>
+                    </div>
+                    <div class="mb-3">
+                        <input type="email" class="form-control" placeholder="Email" required>
+                    </div>
+                    <div class="mb-3">
+                        <input type="tel" class="form-control" placeholder="No. Telepon">
+                    </div>
+                    <div class="mb-3">
+                        <textarea class="form-control" rows="4" placeholder="Pesan Anda" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-orange w-100">
+                        <i class="fas fa-paper-plane me-2"></i>Kirim Pesan
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
