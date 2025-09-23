@@ -1,0 +1,809 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Chat Customer Service{% endblock %}
+
+{% block content %}
+<!-- Hidden user data for JavaScript -->
+<div id="user-data" 
+     data-user-id="{{ current_user.id }}" 
+     data-user-name="{{ current_user.name }}" 
+     data-user-email="{{ current_user.email }}" 
+     data-user-role="{{ current_user.role }}" 
+     style="display: none;"></div>
+<div class="chat-admin-container">
+    <div class="row g-0">
+        <!-- Chat Rooms Sidebar -->
+        <div class="col-md-4 chat-sidebar">
+            <div class="chat-sidebar-header">
+                <h5><i class="fas fa-comments text-orange"></i> Customer Chats</h5>
+                <div class="chat-stats">
+                    <span id="unread-count" class="badge bg-orange">0</span> Pesan Baru
+                </div>
+            </div>
+            
+            <!-- Buyer Search -->
+            <div class="buyer-search-container">
+                <div class="input-group">
+                    <input type="text" id="buyer-search" class="form-control" placeholder="Cari buyer... (nama, email, atau ketik untuk filter)" autocomplete="off">
+                    <span class="input-group-text" style="cursor: pointer;" title="Klik untuk cari">
+                        <i class="fas fa-search"></i>
+                    </span>
+                </div>
+                <small class="text-muted mt-1 d-block">Tekan Enter untuk cari, Escape untuk hapus</small>
+            </div>
+            
+            <div class="chat-rooms-list" id="chat-rooms-list">
+                <div class="text-center p-4 text-muted">
+                    <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                    <p>Memuat daftar chat...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat Window -->
+        <div class="col-md-8 chat-window">
+            <div id="no-chat-selected" class="chat-placeholder">
+                <div class="text-center">
+                    <i class="fas fa-comments fa-4x text-muted mb-3"></i>
+                    <h4>Customer Service Dashboard</h4>
+                    <p class="text-muted">Pilih percakapan untuk mulai membantu customer</p>
+                    <div class="mt-4">
+                        <div class="badge bg-success me-2">
+                            <i class="fas fa-circle me-1"></i>Online
+                        </div>
+                        <span class="text-muted">{{ current_user.name }} - {{ current_user.role.title() }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="active-chat" style="display: none;">
+                <!-- Chat Header -->
+                <div class="chat-header">
+                    <div class="customer-info">
+                        <div class="customer-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="customer-details">
+                            <h6 id="customer-name">Customer</h6>
+                            <small id="customer-status" class="text-muted">Online</small>
+                        </div>
+                    </div>
+                    <div class="chat-actions">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadCustomerInfo()">
+                            <i class="fas fa-info-circle"></i> Info Customer
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="markAsResolved()">
+                            <i class="fas fa-check"></i> Selesai
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Messages Area -->
+                <div class="messages-container" id="messages-container">
+                    <div class="messages-wrapper" id="messages-wrapper">
+                        <!-- Messages will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Typing Indicator -->
+                <div id="typing-indicator-admin" class="typing-indicator" style="display: none;">
+                    <div class="typing-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="typing-message">
+                        <span id="typing-user-name"></span> sedang mengetik...
+                        <div class="typing-animation">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Product Preview -->
+                <div id="product-preview-admin" class="product-preview" style="display: none;">
+                    <div class="preview-content">
+                        <div class="preview-image">
+                            <img id="preview-product-image" src="" alt="">
+                        </div>
+                        <div class="preview-info">
+                            <h6 id="preview-product-name"></h6>
+                            <p id="preview-product-price"></p>
+                        </div>
+                        <button class="btn-close" onclick="clearProductPreview()"></button>
+                    </div>
+                </div>
+                
+                <!-- Chat Input -->
+                <div class="chat-input-container">
+                    <div class="staff-identifier">
+                        <span class="staff-badge">{{ current_user.name }} ({{ current_user.role.title() }})</span>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="admin-message-input" class="form-control" 
+                               placeholder="Ketik pesan untuk customer..." 
+                               onkeypress="handleAdminKeyPress(event)"
+                               oninput="handleAdminTyping()">
+                        <button class="btn btn-orange" onclick="sendAdminMessage()">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div class="quick-actions mt-2">
+                        <button class="btn btn-sm btn-outline-secondary me-2" onclick="showProductSelector()">
+                            <i class="fas fa-tag"></i> Tag Produk
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary me-2" onclick="sendQuickReply('Terima kasih telah menghubungi kami. Ada yang bisa saya bantu?')">
+                            <i class="fas fa-reply"></i> Salam Pembuka
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="sendQuickReply('Terima kasih! Jika ada pertanyaan lain, jangan ragu untuk menghubungi kami.')">
+                            <i class="fas fa-check"></i> Penutup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Connection Status -->
+    <div id="connection-status-admin" class="connection-status-admin">
+        <i class="fas fa-wifi"></i> Terhubung
+    </div>
+</div>
+
+<!-- Customer Info Modal -->
+<div class="modal fade" id="customerInfoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Informasi Customer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="customer-info-content">
+                    <!-- Customer info will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Product Selector Modal -->
+<div class="modal fade" id="productSelectorModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-tag text-orange"></i> Pilih Produk untuk Rekomendasi
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="product-search-container mb-3">
+                    <div class="input-group">
+                        <input type="text" id="product-search-input" class="form-control" 
+                               placeholder="Cari produk berdasarkan nama, brand, atau model...">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                    </div>
+                </div>
+                <div id="product-search-results" class="product-search-results">
+                    <div class="text-center p-4 text-muted">
+                        <i class="fas fa-search fa-2x mb-3"></i>
+                        <p>Ketik minimal 2 karakter untuk mencari produk</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" id="confirm-product-selection" class="btn btn-orange" disabled>
+                    <i class="fas fa-tag"></i> Tag Produk
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Admin Chat Interface Styles */
+.chat-admin-container {
+    height: 80vh;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.chat-sidebar {
+    border-right: 1px solid #dee2e6;
+    background: #f8f9fa;
+}
+
+.chat-sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid #dee2e6;
+    background: white;
+}
+
+.chat-sidebar-header h5 {
+    margin: 0;
+    color: #333;
+    font-weight: 600;
+}
+
+.chat-stats {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #666;
+}
+
+.chat-rooms-list {
+    height: calc(100% - 80px);
+    overflow-y: auto;
+    padding: 0;
+}
+
+.buyer-search-container {
+    padding: 15px 20px;
+    border-bottom: 1px solid #dee2e6;
+    background: white;
+}
+
+.buyer-search-container .input-group-text {
+    background: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+.chat-room-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    background: white;
+    position: relative;
+}
+
+.chat-room-item:hover {
+    background: #f0f0f0;
+}
+
+.chat-room-item.active {
+    background: #fff3cd;
+    border-left: 4px solid #ff6b35;
+}
+
+.chat-room-item.unread {
+    background: #e7f3ff;
+}
+
+.room-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.customer-name {
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    font-size: 16px;
+    flex: 1;
+}
+
+.customer-email {
+    color: #666;
+    font-size: 12px;
+    margin: 2px 0;
+}
+
+.last-message {
+    color: #666;
+    font-size: 14px;
+    margin: 4px 0 0 0;
+    line-height: 1.3;
+}
+
+.message-time {
+    font-size: 12px;
+    color: #999;
+    margin-top: 4px;
+}
+
+.unread-count {
+    background: #ff6b35;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 18px;
+    text-align: center;
+}
+
+.unread-indicator {
+    width: 8px;
+    height: 8px;
+    background: #ff6b35;
+    border-radius: 50%;
+    display: inline-block;
+    margin-left: 8px;
+}
+
+.chat-window {
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-placeholder {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    color: #666;
+}
+
+#active-chat {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chat-header {
+    padding: 20px;
+    border-bottom: 1px solid #dee2e6;
+    background: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.customer-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.customer-avatar {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #ff6b35, #ff8c42);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+}
+
+.customer-details h6 {
+    margin: 0;
+    color: #333;
+    font-weight: 600;
+}
+
+.messages-container {
+    flex: 1;
+    overflow: hidden;
+    background: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.messages-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px;
+    min-height: 0;
+    max-height: 100%;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+.messages-wrapper::-webkit-scrollbar {
+    width: 8px;
+}
+
+.messages-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.messages-wrapper::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.messages-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.chat-message {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.chat-message.admin-message {
+    flex-direction: row-reverse;
+}
+
+.message-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: white;
+    flex-shrink: 0;
+}
+
+.message-avatar.customer {
+    background: #6c757d;
+}
+
+.message-avatar.admin {
+    background: linear-gradient(135deg, #ff6b35, #ff8c42);
+}
+
+.message-content {
+    max-width: 70%;
+    background: white;
+    padding: 12px 16px;
+    border-radius: 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    position: relative;
+    font-size: 15px;
+    line-height: 1.4;
+    color: #333; /* Improved contrast */
+}
+
+.chat-message.admin-message .message-content {
+    background: linear-gradient(135deg, #ff6b35, #ff8c42);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.chat-message.customer-message .message-content {
+    border-bottom-left-radius: 4px;
+    color: #333; /* Better contrast for customer messages */
+}
+
+.message-meta {
+    font-size: 11px;
+    color: rgba(255,255,255,0.8);
+    margin-top: 6px;
+}
+
+.chat-message.customer-message .message-meta {
+    color: #666;
+}
+
+.product-tag {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.product-tag img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.product-tag-info h6 {
+    margin: 0;
+    color: white;
+    font-size: 13px;
+}
+
+.product-tag-info p {
+    margin: 0;
+    color: rgba(255,255,255,0.8);
+    font-size: 12px;
+}
+
+.typing-indicator {
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(0,0,0,0.03);
+}
+
+.typing-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+}
+
+.typing-message {
+    font-size: 14px;
+    color: #666;
+    font-style: italic;
+}
+
+.typing-animation {
+    display: inline-flex;
+    gap: 2px;
+    margin-left: 8px;
+}
+
+.typing-animation span {
+    width: 4px;
+    height: 4px;
+    background: #666;
+    border-radius: 50%;
+    animation: typing 1.4s infinite;
+}
+
+.typing-animation span:nth-child(2) { animation-delay: 0.2s; }
+.typing-animation span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-10px); }
+}
+
+.chat-input-container {
+    padding: 20px;
+    background: white;
+    border-top: 1px solid #dee2e6;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+}
+
+.staff-identifier {
+    margin-bottom: 10px;
+}
+
+.staff-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: linear-gradient(135deg, #ff6b35, #ff8c42);
+    color: white;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.input-group input {
+    border: 2px solid #dee2e6;
+    font-size: 15px;
+    padding: 12px 16px;
+}
+
+.input-group input:focus {
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.25);
+}
+
+.btn-orange {
+    background: linear-gradient(135deg, #ff6b35, #ff8c42);
+    border-color: #ff6b35;
+    color: white;
+    padding: 12px 20px;
+}
+
+.btn-orange:hover {
+    background: linear-gradient(135deg, #e55a2e, #e57938);
+    border-color: #e55a2e;
+}
+
+.quick-actions button {
+    font-size: 12px;
+    padding: 6px 12px;
+}
+
+.connection-status-admin {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #28a745;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+}
+
+.connection-status-admin.disconnected {
+    background: #dc3545;
+}
+
+.connection-status-admin.connecting {
+    background: #ffc107;
+    color: #333;
+}
+
+.product-preview {
+    padding: 15px 20px;
+    background: #fff3cd;
+    border-top: 1px solid #ffeaa7;
+}
+
+.preview-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+}
+
+.preview-image img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.preview-info h6 {
+    margin: 0;
+    color: #333;
+    font-size: 14px;
+}
+
+.preview-info p {
+    margin: 0;
+    color: #856404;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.btn-close {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .chat-admin-container {
+        height: calc(100vh - 120px);
+    }
+    
+    .chat-sidebar {
+        display: none;
+    }
+    
+    .chat-window {
+        width: 100%;
+    }
+}
+
+/* Product Selector Modal Styles */
+.product-search-results {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.product-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.product-item:hover {
+    border-color: #ff6b35;
+    background-color: #fff8f5;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.15);
+}
+
+.product-item.selected {
+    border-color: #ff6b35;
+    background-color: #fff3cd;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.2);
+}
+
+.product-item-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.product-item-info {
+    flex: 1;
+}
+
+.product-item-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: #333;
+    margin: 0 0 5px 0;
+}
+
+.product-item-brand {
+    font-size: 12px;
+    color: #666;
+    margin: 0 0 5px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.product-item-price {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ff6b35;
+    margin: 0;
+}
+
+.product-item-description {
+    font-size: 13px;
+    color: #666;
+    margin: 5px 0 0 0;
+    line-height: 1.3;
+}
+
+.product-search-container .input-group-text {
+    background: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+/* Scrollbar styling */
+.messages-wrapper::-webkit-scrollbar {
+    width: 6px;
+}
+
+.messages-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.messages-wrapper::-webkit-scrollbar-thumb {
+    background: #ff6b35;
+    border-radius: 3px;
+}
+
+.messages-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #e55a2e;
+}
+
+.product-search-results::-webkit-scrollbar {
+    width: 6px;
+}
+
+.product-search-results::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.product-search-results::-webkit-scrollbar-thumb {
+    background: #ff6b35;
+    border-radius: 3px;
+}
+
+.product-search-results::-webkit-scrollbar-thumb:hover {
+    background: #e55a2e;
+}
+</style>
+
+<script src="{{ url_for('static', filename='js/admin-chat.js') }}"></script>
+{% endblock %}

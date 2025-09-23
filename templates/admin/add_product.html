@@ -1,0 +1,431 @@
+
+{% extends "admin/base.html" %}
+
+{% block title %}Tambah Produk - Admin{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="mb-0">Tambah Produk Baru</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">Nama Produk *</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="category_id" class="form-label">Kategori *</label>
+                            <select class="form-select" id="category_id" name="category_id" required>
+                                <option value="">Pilih Kategori</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="supplier_id" class="form-label">Informasi Supplier</label>
+                            <select class="form-select" id="supplier_id" name="supplier_id">
+                                <option value="">Pilih Supplier</option>
+                                {% for supplier in suppliers %}
+                                <option value="{{ supplier.id }}" 
+                                        data-contact="{{ supplier.contact_person or '' }}"
+                                        data-phone="{{ supplier.phone or '' }}"
+                                        data-address="{{ supplier.address or '' }}">
+                                    {{ supplier.name }}{% if supplier.company %} - {{ supplier.company }}{% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div id="supplier-info" class="mt-2" style="display: none;">
+                                <small class="text-muted">
+                                    <div id="supplier-contact"></div>
+                                    <div id="supplier-phone"></div>
+                                    <div id="supplier-address"></div>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Deskripsi</label>
+                        <textarea class="form-control" id="description" name="description" rows="4"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="price" class="form-label">Harga (Rp) *</label>
+                            <input type="number" class="form-control" id="price" name="price" step="0.01" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="stock_quantity" class="form-label">Stok *</label>
+                            <input type="number" class="form-control" id="stock_quantity" name="stock_quantity" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="brand" class="form-label">Brand</label>
+                            <input type="text" class="form-control" id="brand" name="brand">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="weight" class="form-label">Berat (gram)</label>
+                            <input type="number" class="form-control" id="weight" name="weight" min="0" step="100">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="length" class="form-label">Panjang (cm)</label>
+                            <input type="number" class="form-control" id="length" name="length" min="0" step="0.1">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="width" class="form-label">Lebar (cm)</label>
+                            <input type="number" class="form-control" id="width" name="width" min="0" step="0.1">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="height" class="form-label">Tinggi (cm)</label>
+                            <input type="number" class="form-control" id="height" name="height" min="0" step="0.1">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="model" class="form-label">Model</label>
+                            <input type="text" class="form-control" id="model" name="model">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured">
+                                <label class="form-check-label" for="is_featured">
+                                    Produk Unggulan
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="images" class="form-label">Gambar Produk (Maksimal 5, Auto-compress ke 1MB)</label>
+                        <div class="upload-area border border-dashed border-2 rounded p-4 text-center mb-3" id="uploadArea">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                            <p class="mb-2">Klik untuk memilih gambar atau drag & drop di sini</p>
+                            <input type="file" class="form-control d-none" id="images" name="images" multiple 
+                                   accept="image/*" onchange="previewImages(this)">
+                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP. Maksimal 5 gambar, masing-masing max 5MB</small>
+                        </div>
+                        
+                        <div id="imagePreview" class="row"></div>
+                        <input type="hidden" id="mainImageIndex" name="main_image_index" value="0">
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin_products') }}" class="btn btn-secondary">Kembali</a>
+                        <button type="submit" class="btn btn-primary">Simpan Produk</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+.upload-area {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.upload-area:hover {
+    border-color: #007bff !important;
+    background-color: #f8f9fa;
+}
+.upload-area.dragover {
+    border-color: #007bff !important;
+    background-color: #e3f2fd;
+}
+.image-preview-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+.image-preview-item.main-image {
+    border-color: #28a745;
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+}
+.image-preview-item img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    cursor: pointer;
+}
+.image-controls {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    display: flex;
+    gap: 5px;
+}
+.control-btn {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+.control-btn:hover {
+    opacity: 1;
+}
+.main-badge {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    background: #28a745;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: bold;
+}
+.file-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+    color: white;
+    padding: 5px;
+    font-size: 11px;
+    text-align: center;
+}
+</style>
+
+<script>
+let selectedFiles = [];
+let mainImageIndex = 0;
+
+// Setup drag and drop functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('images');
+    
+    // Click to upload
+    uploadArea.addEventListener('click', function() {
+        fileInput.click();
+    });
+    
+    // Drag and drop events
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+        handleFiles(files);
+    });
+});
+
+function previewImages(input) {
+    const files = Array.from(input.files);
+    handleFiles(files);
+}
+
+function handleFiles(files) {
+    // Validate file count
+    if (files.length > 5) {
+        alert('Maksimal 5 gambar!');
+        return;
+    }
+    
+    // Validate file sizes
+    for (let file of files) {
+        if (file.size > 5 * 1024 * 1024) { // 5MB
+            alert(`File ${file.name} terlalu besar. Maksimal 5MB per file.`);
+            return;
+        }
+    }
+    
+    selectedFiles = files;
+    renderImagePreviews();
+}
+
+function renderImagePreviews() {
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = '';
+    
+    if (selectedFiles.length === 0) {
+        return;
+    }
+    
+    selectedFiles.forEach((file, index) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const div = document.createElement('div');
+            div.className = 'col-md-2 col-sm-3 col-4 mb-3';
+            div.innerHTML = `
+                <div class="image-preview-item ${index === mainImageIndex ? 'main-image' : ''}" data-index="${index}">
+                    <img src="${e.target.result}" alt="Preview ${index + 1}" onclick="setMainImage(${index})">
+                    <div class="image-controls">
+                        <button type="button" class="control-btn bg-primary text-white" onclick="setMainImage(${index})" title="Set sebagai gambar utama">
+                            <i class="fas fa-star"></i>
+                        </button>
+                        <button type="button" class="control-btn bg-danger text-white" onclick="removeImage(${index})" title="Hapus gambar">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    ${index === mainImageIndex ? '<div class="main-badge">UTAMA</div>' : ''}
+                    <div class="file-info">
+                        ${(file.size / 1024 / 1024).toFixed(1)}MB
+                    </div>
+                </div>
+            `;
+            preview.appendChild(div);
+        };
+        
+        reader.readAsDataURL(file);
+    });
+    
+    // Update the file input with selected files
+    updateFileInput();
+}
+
+function setMainImage(index) {
+    if (index >= 0 && index < selectedFiles.length) {
+        mainImageIndex = index;
+        document.getElementById('mainImageIndex').value = index;
+        renderImagePreviews();
+        
+        // Show success message
+        showToast(`Gambar ${index + 1} ditetapkan sebagai gambar utama`, 'success');
+    }
+}
+
+function removeImage(index) {
+    if (confirm('Hapus gambar ini?')) {
+        selectedFiles.splice(index, 1);
+        
+        // Adjust main image index if necessary
+        if (mainImageIndex >= index && mainImageIndex > 0) {
+            mainImageIndex--;
+        } else if (mainImageIndex >= selectedFiles.length) {
+            mainImageIndex = Math.max(0, selectedFiles.length - 1);
+        }
+        
+        document.getElementById('mainImageIndex').value = mainImageIndex;
+        renderImagePreviews();
+        
+        showToast('Gambar berhasil dihapus', 'info');
+    }
+}
+
+function updateFileInput() {
+    const fileInput = document.getElementById('images');
+    const dataTransfer = new DataTransfer();
+    
+    selectedFiles.forEach(file => {
+        dataTransfer.items.add(file);
+    });
+    
+    fileInput.files = dataTransfer.files;
+}
+
+function showToast(message, type = 'info') {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    document.body.removeChild(toast);
+                }
+            }, 150);
+        }
+    }, 3000);
+}
+
+// Show supplier information when selected
+document.getElementById('supplier_id').addEventListener('change', function() {
+    const selected = this.options[this.selectedIndex];
+    const infoDiv = document.getElementById('supplier-info');
+    
+    if (this.value) {
+        const contact = selected.dataset.contact;
+        const phone = selected.dataset.phone;
+        const address = selected.dataset.address;
+        
+        document.getElementById('supplier-contact').textContent = contact ? `Contact: ${contact}` : '';
+        document.getElementById('supplier-phone').textContent = phone ? `Phone: ${phone}` : '';
+        document.getElementById('supplier-address').textContent = address ? `Address: ${address}` : '';
+        
+        infoDiv.style.display = 'block';
+    } else {
+        infoDiv.style.display = 'none';
+    }
+});
+
+// Form validation before submit
+document.querySelector('form').addEventListener('submit', function(e) {
+    if (selectedFiles.length === 0) {
+        e.preventDefault();
+        alert('Silakan pilih minimal 1 gambar produk!');
+        return false;
+    }
+    
+    if (selectedFiles.length > 5) {
+        e.preventDefault();
+        alert('Maksimal 5 gambar produk!');
+        return false;
+    }
+    
+    // Show loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+    submitBtn.disabled = true;
+    
+    // Re-enable if there's an error (form won't submit)
+    setTimeout(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }, 5000);
+});
+
+// Auto-resize textarea
+document.getElementById('description').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+});
+</script>
+{% endblock %}
