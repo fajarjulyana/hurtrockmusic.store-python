@@ -1,0 +1,19 @@
+tunnel: kasir
+credentials-file: config/7dfdc496-a179-4074-8baa-9d6a9c5a59ec.json
+
+ingress:
+  # Chat service di subdomain khusus
+  - hostname: chat.fajarmandiri.store
+    service: http://localhost:8000
+
+  # Kasir app
+  - hostname: kasir.fajarmandiri.store
+    service: http://localhost:5000
+
+  # Domain utama
+  - hostname: fajarmandiri.store
+    service: http://localhost:5001
+
+  # Fallback
+  - service: http_status:404
+
