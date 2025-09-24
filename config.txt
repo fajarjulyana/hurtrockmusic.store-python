@@ -1,6 +1,0 @@
-
-# Hurtrock Music Store - Port Configuration
-# Format: KEY=VALUE
-
-FLASK_PORT=5000
-DJANGO_PORT=8000
